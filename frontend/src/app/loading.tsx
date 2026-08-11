@@ -1,0 +1,1 @@
+export default function Loading(){return <div className="page-container loading-page" aria-label="Loading page"><span className="skeleton loading-line"/><span className="skeleton loading-feature"/>{[1,2,3].map(row=><span className="skeleton loading-row" key={row}/>)}</div>}

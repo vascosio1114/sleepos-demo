@@ -1,0 +1,2 @@
+"use client";
+export default function GlobalError({reset}:{error:Error&{digest?:string};reset:()=>void}){return <html lang="en"><body><main className="page-container error-page"><span className="error-code">APPLICATION ERROR</span><h1>SleepOS needs a fresh start.</h1><p>No wellness data was changed. Reload the application to continue.</p><button className="button button-primary" onClick={reset}>Reload SleepOS</button></main></body></html>}

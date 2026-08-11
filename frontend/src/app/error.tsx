@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorPage({reset}:{error:Error&{digest?:string};reset:()=>void}){return <div className="page-container error-page"><span className="error-code">RECOVERY AVAILABLE</span><h1>We could not load this view.</h1><p>Your demo data has not been changed. Try the page again, or return through the navigation.</p><button className="button button-primary" onClick={reset}>Try again</button></div>}
