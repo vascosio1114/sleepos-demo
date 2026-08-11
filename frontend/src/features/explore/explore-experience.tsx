@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowCounterClockwiseIcon, ArrowRightIcon, InfoIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, InfoIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { exploreSystems, type ExploreSystemKey } from "./systems";
 import styles from "./explore.module.css";
+import focusStyles from "./organ-focus.module.css";
 
 type ViewerState = "loading" | "ready" | "error" | "timeout";
 
@@ -19,8 +20,7 @@ function supportsWebGL() {
 
 export function ExploreExperience({ initialSystem }: { initialSystem: ExploreSystemKey | null }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const detailSheetRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLAnchorElement>(null);
   const selectedKeyRef = useRef<ExploreSystemKey | null>(initialSystem);
   const [viewerKey, setViewerKey] = useState(0);
   const [viewerState, setViewerState] = useState<ViewerState>("loading");
@@ -64,8 +64,6 @@ export function ExploreExperience({ initialSystem }: { initialSystem: ExploreSys
   useEffect(() => {
     if (!selectedKey) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -73,18 +71,10 @@ export function ExploreExperience({ initialSystem }: { initialSystem: ExploreSys
         setSelectedKey(null);
         iframeRef.current?.contentWindow?.postMessage({ source: "sleepos-explore", type: "clear" }, "*");
       }
-      if (event.key !== "Tab") return;
-      const focusable = Array.from(detailSheetRef.current?.querySelectorAll<HTMLElement>("button, a[href]") ?? []);
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => {
       window.removeEventListener("keydown", closeOnEscape);
-      document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
   }, [selectedKey]);
@@ -104,31 +94,23 @@ export function ExploreExperience({ initialSystem }: { initialSystem: ExploreSys
     iframeRef.current?.contentWindow?.postMessage({ source: "sleepos-explore", type: "clear" }, "*");
   }
 
-  function resetViewer() {
-    clearSelection();
-    iframeRef.current?.contentWindow?.postMessage({ source: "sleepos-explore", type: "reset" }, "*");
-  }
-
   function retryViewer() {
     setViewerState("loading");
     setViewerKey((key) => key + 1);
   }
 
   return (
-    <div className={styles.experience} style={{ minWidth: 0, maxWidth: "100%" }}>
-      <section className={styles.viewerPanel} style={{ minWidth: 0, maxWidth: "100%" }} aria-labelledby="body-map-title">
-        <div className={styles.viewerHeading}>
-          <div><p className={styles.kicker}>Body map · Demo</p><h2 id="body-map-title">Systems related to sleep</h2></div>
-          <button className={styles.resetButton} type="button" onClick={resetViewer} disabled={viewerState !== "ready"}>
-            <ArrowCounterClockwiseIcon aria-hidden="true" /> Reset view
-          </button>
+    <div className={`${styles.experience} ${selectedSystem ? focusStyles.focused : ""} explore-canvas`} data-focused={selectedSystem ? true : undefined} style={{ minWidth: 0, maxWidth: "100%" }}>
+      <section className={`${styles.viewerPanel} explore-viewer`} style={{ minWidth: 0, maxWidth: "100%" }} aria-labelledby="body-map-title">
+        <div className={`${styles.viewerHeading} explore-viewer-heading`}>
+          <div><p className={styles.kicker}>Explore · Body map</p><h2 id="body-map-title">Your body in context</h2><p className="explore-viewer-intro">Select a system to see its relationship with sleep and recovery.</p></div>
         </div>
 
-        <div className={styles.stage} data-state={viewerState}>
+        <div className={`${styles.stage} explore-stage`} data-state={viewerState}>
           <iframe
             key={viewerKey}
             ref={iframeRef}
-            className={styles.modelFrame}
+            className={`${styles.modelFrame} explore-model-frame`}
             src="/explore/bodyparts3d.html"
             title="Interactive BodyParts3D human model"
             aria-describedby="model-guidance"
@@ -146,6 +128,7 @@ export function ExploreExperience({ initialSystem }: { initialSystem: ExploreSys
               aria-label={`${region.label}, labeled context only`}
               aria-pressed={selectedKey === region.key}
               onClick={() => setSelectedKey(region.key)}
+              className={focusStyles.regionalLabel}
               style={{ position: "absolute", top: region.top, left: region.left, zIndex: 2, display: "grid", gap: 4, justifyItems: "center", border: 0, background: "transparent", color: "#d9e8ee", font: "600 .65rem var(--font-geist-mono)", transform: "translate(-50%,-50%)" }}
             >
               <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: "50%", background: selectedKey === region.key ? "#d7e5e7" : "#b78c60", border: "3px solid rgba(2,11,24,.72)", boxShadow: "0 0 0 1px rgba(215,229,231,.55)" }} />
@@ -161,39 +144,33 @@ export function ExploreExperience({ initialSystem }: { initialSystem: ExploreSys
             </div>
           )}
         </div>
-        <p className={styles.guidance} id="model-guidance">Drag to rotate, scroll or pinch to zoom, or use the system buttons. Reduced-motion preferences disable automatic rotation.</p>
+        <p className={`${styles.guidance} explore-guidance`} id="model-guidance">Drag to rotate, scroll or pinch to zoom, or use the system buttons. Reduced-motion preferences disable automatic rotation.</p>
       </section>
 
-      <aside className={styles.systemRail} style={{ minWidth: 0, maxWidth: "100%" }} aria-label="Body systems">
-        <div className={styles.railHeading}><p className={styles.kicker}>Choose a system</p><p>Every option works without the 3D view.</p></div>
-        <div className={styles.systemList} style={{ minWidth: 0, maxWidth: "100%" }}>
-          {exploreSystems.map((system, index) => (
-            <button className={styles.systemButton} data-selected={system.key === selectedKey} type="button" key={system.key} onClick={() => selectSystem(system.key)} aria-pressed={system.key === selectedKey} aria-expanded={system.key === selectedKey} aria-controls={system.key === selectedKey ? "system-detail-sheet" : undefined} style={{ "--index": index } as React.CSSProperties}>
-              <span><strong>{system.label}</strong><small>{system.modelLayer ? "Verified model layer" : "Labeled region"}</small></span>
-              <span className={styles.systemStatus} data-tone={system.status === "Attention" ? "attention" : "calm"}>{system.status}</span>
-            </button>
-          ))}
-        </div>
-        <div className={styles.truthNote}><InfoIcon aria-hidden="true" /><p>Brain, heart, lungs and gut are verified model layers. Muscle and metabolic views are labeled regional context only.</p></div>
+      <aside className={`${styles.systemRail} ${selectedSystem ? focusStyles.focusRail : ""} explore-system-rail`} data-focused={selectedSystem ? true : undefined} style={{ minWidth: 0, maxWidth: "100%" }} aria-label={selectedSystem ? `${selectedSystem.label} context` : "Body systems"}>
+        {selectedSystem ? <>
+          <Link ref={closeButtonRef} className={focusStyles.focusClose} href="/explore" aria-label="Close organ focus" onClick={clearSelection}><XIcon size={18} aria-hidden="true" /></Link>
+          <p className={styles.kicker}>{selectedSystem.status} · Organ context</p>
+          <h2 className={focusStyles.focusTitle}>{selectedSystem.label}</h2>
+          {selectedSystem.regionNote ? <p className={focusStyles.focusNote}>{selectedSystem.regionNote}</p> : null}
+          <p className={focusStyles.focusSummary}>{selectedSystem.summary}</p>
+          <dl className={focusStyles.focusMetrics}>{selectedSystem.metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd></div>)}</dl>
+          <div className={focusStyles.suggestionHead}><p className={styles.kicker}>Calendar suggestions</p><span>Choose what is useful</span></div>
+          <div className={focusStyles.calendarSuggestions}>{selectedSystem.calendarSuggestions.map((suggestion, index) => <Link key={suggestion.label} href={suggestion.href}><span>0{index + 1}</span><div><strong>{suggestion.label}</strong><small>{suggestion.detail}</small></div><ArrowRightIcon size={15} aria-hidden="true" /></Link>)}</div>
+          <p className={focusStyles.focusSafety}>Wellness context only. These suggestions do not diagnose a condition or replace professional care.</p>
+        </> : <>
+          <div className={`${styles.railHeading} explore-rail-heading`}><p className={styles.kicker}>Choose a system</p><p>Every option works without the 3D view.</p></div>
+          <div className={`${styles.systemList} explore-system-list`} style={{ minWidth: 0, maxWidth: "100%" }}>
+            {exploreSystems.map((system, index) => (
+              <button className={`${styles.systemButton} explore-system-button`} data-selected={system.key === selectedKey} type="button" key={system.key} onClick={() => selectSystem(system.key)} aria-pressed={system.key === selectedKey} style={{ "--index": index } as React.CSSProperties}>
+                <span><strong>{system.label}</strong><small>{system.modelLayer ? "Verified model layer" : "Labeled region"}</small></span>
+                <span className={styles.systemStatus} data-tone={system.status === "Attention" ? "attention" : "calm"}>{system.status}</span>
+              </button>
+            ))}
+          </div>
+          <div className={`${styles.truthNote} explore-truth-note`}><InfoIcon aria-hidden="true" /><p>Brain, heart, lungs and gut are verified model layers. Muscle and metabolic views are labeled regional context only.</p></div>
+        </>}
       </aside>
-
-      {selectedSystem && (
-        <div className={styles.sheetBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) clearSelection(); }}>
-          <section id="system-detail-sheet" ref={detailSheetRef} className={styles.detailSheet} role="dialog" aria-modal="true" aria-labelledby="system-sheet-title">
-            <button ref={closeButtonRef} className={styles.closeButton} type="button" aria-label="Close system details" onClick={clearSelection}><XIcon aria-hidden="true" /></button>
-            <p className={styles.kicker}>{selectedSystem.status} · Demo signals</p>
-            <h2 id="system-sheet-title">{selectedSystem.label}</h2>
-            {selectedSystem.regionNote && <p className={styles.regionNote}>{selectedSystem.regionNote}</p>}
-            <p className={styles.systemSummary}>{selectedSystem.summary}</p>
-            <dl className={styles.metricList}>{selectedSystem.metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd></div>)}</dl>
-            <div className={styles.sheetActions}>
-              <Link className={styles.primaryAction} href={selectedSystem.primaryAction.href}>{selectedSystem.primaryAction.label}<ArrowRightIcon aria-hidden="true" /></Link>
-              {selectedSystem.secondaryAction && <Link className={styles.secondaryAction} href={selectedSystem.secondaryAction.href}>{selectedSystem.secondaryAction.label}</Link>}
-            </div>
-            <p className={styles.safetyCopy}>These wellness signals may provide context; they do not diagnose a condition or establish a cause.</p>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

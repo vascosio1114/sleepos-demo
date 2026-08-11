@@ -8,8 +8,8 @@ export const metadata: Metadata = { title: "Profile" };
 
 function SourceSection({ id, title, description, sources }: { id: string; title: string; description: string; sources: readonly { name: string; detail: string; status: SourceStatus }[] }) {
   return (
-    <section className="source-section" id={id}>
-      <div className="source-heading"><div><h2>{title}</h2><p>{description}</p></div><span>{sources.length}</span></div>
+    <details className="source-section" id={id}>
+      <summary className="source-heading"><div><h2>{title}</h2><p>{description}</p></div><span>{sources.length} sources</span></summary>
       <div className="source-list">
         {sources.map((source) => (
           <div className="source-row" key={source.name}>
@@ -19,7 +19,7 @@ function SourceSection({ id, title, description, sources }: { id: string; title:
           </div>
         ))}
       </div>
-    </section>
+    </details>
   );
 }
 
@@ -27,10 +27,10 @@ export default function ProfilePage() {
   const { user, sources } = alexDemo;
   return (
     <div className="page-container profile-page">
-      <PageHeader eyebrow="Profile · Demo mode" title="Your information, made transparent" description="See which sources shape your SleepOS view and whether each one is live, simulated, or not connected." />
+      <PageHeader eyebrow="Profile · Demo mode" title="Profile & data" description="Review what shapes your view." />
       <section className="profile-identity" aria-label="Demo profile">
         <div className="profile-monogram" aria-hidden="true">A</div>
-        <div><p className="eyebrow">Competition profile</p><h2>{user.name}</h2><p>Age {user.age} · Synthetic wellness data</p></div>
+        <div><p className="eyebrow">Demo profile</p><h2>{user.name}</h2><p>Age {user.age}</p></div>
         <span className="demo-label">Demo</span>
       </section>
       <div className="profile-sources">
@@ -40,8 +40,8 @@ export default function ProfilePage() {
       </div>
       <section className="settings-line">
         <ShieldCheckIcon size={22} aria-hidden="true" />
-        <div><h2>Privacy & settings</h2><p>Demo data stays separate from real account and health information.</p></div>
-        <Link className="button button-secondary" href="/onboarding">Review demo onboarding</Link>
+        <div><h2>Privacy & settings</h2><p>Demo data only.</p></div>
+        <Link className="button button-secondary" href="/onboarding">Review</Link>
       </section>
     </div>
   );

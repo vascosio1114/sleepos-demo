@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, MoonIcon, PauseIcon, PlayIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, BrainIcon, CheckIcon, MoonIcon, PauseIcon, PlayIcon, WindIcon, XIcon } from "@phosphor-icons/react";
 import { completedActionCount, type BrainTrainingResult, type BreathingResult, type PlanActionId } from "@/lib/plan-state";
 import { usePlan } from "./plan-provider";
 import styles from "./plan-experience.module.css";
@@ -9,6 +9,46 @@ import consultationStyles from "./consultation-dialog.module.css";
 
 type Session = PlanActionId | null;
 type TrialPhase = "intro" | "waiting" | "target" | "complete";
+
+const monthDays = [
+  ...[27, 28, 29, 30, 31].map((date) => ({ date, month: "July", muted: true })),
+  ...Array.from({ length: 31 }, (_, index) => ({ date: index + 1, month: "August", muted: false })),
+  ...[1, 2, 3, 4, 5, 6].map((date) => ({ date, month: "September", muted: true })),
+];
+
+const weekdayLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+const brainHealthFactors = [
+  { id: "sleep", label: "Sleep rhythm", short: "SLP", cadence: "Tue + Sun" },
+  { id: "cardio", label: "Heart & cardio", short: "HRT", cadence: "Wednesday" },
+  { id: "breathing", label: "Breathing", short: "BR", cadence: "Tuesday" },
+  { id: "movement", label: "Daily movement", short: "MOV", cadence: "Monday" },
+  { id: "strength", label: "Strength", short: "STR", cadence: "Saturday" },
+  { id: "nutrition", label: "Nutrition", short: "NTR", cadence: "Wednesday" },
+  { id: "metabolic", label: "Metabolic health", short: "MET", cadence: "Friday" },
+  { id: "stress", label: "Stress reset", short: "RST", cadence: "Thursday" },
+  { id: "social", label: "Social connection", short: "SOC", cadence: "Fri + Sun" },
+  { id: "learning", label: "Learning", short: "LRN", cadence: "Monday" },
+  { id: "environment", label: "Healthy environment", short: "ENV", cadence: "Thu + Sat" },
+] as const;
+
+type BrainHealthFactor = (typeof brainHealthFactors)[number];
+const factorsById = new Map(brainHealthFactors.map((factor) => [factor.id, factor]));
+const weeklyFactorPattern = [
+  ["movement", "learning"],
+  ["sleep", "breathing"],
+  ["cardio", "nutrition"],
+  ["stress", "environment"],
+  ["social", "metabolic"],
+  ["strength", "environment"],
+  ["sleep", "social"],
+] as const;
+
+function factorsForAugustDate(date: number): readonly BrainHealthFactor[] {
+  if (date === 11) return [factorsById.get("learning"), factorsById.get("breathing"), factorsById.get("sleep")].filter((factor): factor is BrainHealthFactor => Boolean(factor));
+  const mondayFirstWeekday = (date + 4) % 7;
+  return weeklyFactorPattern[mondayFirstWeekday].map((id) => factorsById.get(id)).filter((factor): factor is BrainHealthFactor => Boolean(factor));
+}
 
 export function AttentionSession({ onClose, onSaved }: Readonly<{ onClose: () => void; onSaved?: () => void }>) {
   const { dispatch } = usePlan();
@@ -278,29 +318,78 @@ export function PlanExperience({ initialSession = null }: Readonly<{ initialSess
     setSession(id);
   }
 
+  const progressValue = `${(completed / state.actions.length) * 100}%`;
+  const schedule = {
+    brain_training: { time: "09:30", window: "Morning" },
+    breathing: { time: "15:00", window: "Afternoon" },
+    sleep_goal: { time: "22:30", window: "Tonight" },
+  } as const;
+
   return (
     <div className={`page-container ${styles.page}`}>
       <header className={styles.header}>
-        <div><p className="eyebrow">Your plan for today · Demo data</p><h1>Three clear priorities.</h1><p>Complete the next useful action without turning your day into another dashboard.</p></div>
-        <div className={styles.progress} aria-live="polite"><strong>{completed}/{state.actions.length}</strong><span>complete</span></div>
+        <div><p className="eyebrow">Your plan · Demo data</p><h1>August 2026</h1></div>
+        <div className={styles.progressWrap}>
+          <div className={styles.progress} style={{ "--progress": progressValue } as React.CSSProperties} aria-live="polite"><span><strong>{completed}</strong> of {state.actions.length} complete</span><i aria-hidden="true" /></div>
+          <p>{completed === state.actions.length ? "All priorities complete" : `${state.actions.length - completed} small steps remain`}</p>
+        </div>
       </header>
 
-      <section className={styles.actions} aria-label="Daily plan">
-        {state.actions.map((action, index) => (
-          <article key={action.id} data-status={action.status}>
-            <span className={styles.index}>0{index + 1}</span>
-            <div><p>{action.duration}</p><h2>{action.title}</h2><span>{action.purpose}</span></div>
-            <span className={styles.state}>{action.status === "completed" ? <><CheckIcon size={17} />Completed</> : action.status}</span>
-            <button className="button button-primary" disabled={action.status === "completed"} onClick={() => start(action.id)}>
-              {action.status === "completed" ? "Done" : action.id === "sleep_goal" ? <><MoonIcon size={18} />Set goal</> : "Start"}
-            </button>
-          </article>
-        ))}
+      <section className={styles.calendar} aria-label="August 2026 calendar and schedule">
+        <div className={styles.calendarTop}><div><span>August</span><strong>2026</strong></div><p>Today · Tuesday 11</p></div>
+        <div className={styles.month} role="grid" aria-label="August 2026 month">
+          {weekdayLabels.map((day) => <div className={styles.weekday} role="columnheader" key={day}>{day.slice(0, 3)}</div>)}
+          {monthDays.map((day) => {
+            const isToday = day.month === "August" && day.date === 11;
+            const healthFactors = day.month === "August" ? factorsForAugustDate(day.date) : [];
+            return (
+              <div className={styles.monthDay} role="gridcell" aria-selected={isToday || undefined} data-muted={day.muted || undefined} data-today={isToday || undefined} key={`${day.month}-${day.date}`}>
+                <span>{day.date}</span>
+                {healthFactors.length ? <div className={styles.dayFactors} aria-label={healthFactors.map((factor) => factor.label).join(", ")}>{healthFactors.map((factor) => <span key={factor.id} data-factor={factor.id}><i>{factor.short}</i><b>{factor.label}</b></span>)}</div> : null}
+              </div>
+            );
+          })}
+        </div>
+
+        <details className={styles.factorGuide}>
+          <summary><span><span className="eyebrow">Monthly rhythm</span><strong id="brain-health-factors-heading">11 health factors</strong></span><span>View labels</span></summary>
+          <div className={styles.factorIndex}>
+            <div className={styles.factorList}>{brainHealthFactors.map((factor, index) => <div id={`factor-${factor.id}`} key={factor.id}><span>{String(index + 1).padStart(2, "0")}</span><strong>{factor.label}</strong><small>{factor.cadence}</small></div>)}</div>
+            <div className={styles.annualCheckup} id="annual-checkup"><span>Yearly</span><div><strong>Annual checkup reminder</strong><small>Confirm the timing that fits you with a qualified clinician.</small></div></div>
+          </div>
+        </details>
+
+        <div className={styles.agenda}>
+          <div className={styles.agendaHead}><div><p className="eyebrow">Today</p><h2>Tuesday 11</h2></div><span>{state.actions.length} actions</span></div>
+          <div className={styles.timeline}>
+            {state.actions.map((action, index) => {
+              const scheduled = schedule[action.id];
+              return (
+                <article className={styles.event} key={action.id} data-action={action.id} data-status={action.status}>
+                  <time dateTime={`2026-08-11T${scheduled.time}`}>{scheduled.time}<span>{scheduled.window}</span></time>
+                  <div className={styles.eventStem} aria-hidden="true"><i /></div>
+                  <div className={styles.eventCard}>
+                    <div className={styles.actionVisual} data-action={action.id} aria-hidden="true">
+                      {action.id === "brain_training" ? <BrainIcon size={25} weight="light" /> : null}
+                      {action.id === "breathing" ? <WindIcon size={25} weight="light" /> : null}
+                      {action.id === "sleep_goal" ? <MoonIcon size={25} weight="light" /> : null}
+                    </div>
+                    <div className={styles.actionCopy}><p>{action.duration}</p><h3>{action.title}</h3><span>{action.purpose}</span></div>
+                    {action.status !== "pending" ? <span className={styles.state}>{action.status === "completed" ? <><CheckIcon size={17} />Completed</> : action.status}</span> : null}
+                    <button className={`button ${index === 0 ? "button-primary" : "button-secondary"}`} disabled={action.status === "completed"} onClick={() => start(action.id)}>
+                      {action.status === "completed" ? "Done" : action.id === "sleep_goal" ? <><MoonIcon size={18} />Set goal</> : <>Start <ArrowRightIcon size={17} /></>}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       {state.sessions.length > 0 ? <section className={styles.history}><p className="eyebrow">Session history</p><h2>Latest measured result</h2>{state.sessions.slice(-1).map((result) => <div key={result.id}><span>{new Date(result.completedAt).toLocaleDateString()}</span>{result.type === "brain_training" ? <><strong>{result.reactionTime !== null ? `${result.reactionTime} ms` : "No response"}</strong><span>{result.accuracy}% accuracy</span></> : <><strong>Breathing</strong><span>{result.feedback} · {result.durationSeconds}s</span></>}</div>)}</section> : null}
 
-      <section className={styles.consultation}><div><p className="eyebrow">Additional support</p><h2>Talk through your sleep pattern.</h2><p>Consultation availability is simulated in this competition demo.</p></div><button className="button button-secondary" onClick={() => setIsConsultationOpen(true)}>View demo options</button></section>
+      <section className={styles.consultation}><div><p className="eyebrow">Optional support</p><h2>Talk through the pattern</h2></div><button className="button button-secondary" onClick={() => setIsConsultationOpen(true)}>View options</button></section>
 
       {session === "brain_training" ? <AttentionSession onClose={() => setSession(null)} /> : null}
       {session === "breathing" ? <BreathingSession onClose={() => setSession(null)} /> : null}

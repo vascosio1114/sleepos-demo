@@ -1,0 +1,113 @@
+.focused :global(.explore-viewer-heading) {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.focused :global(.explore-guidance),
+.focused .regionalLabel {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.regionalLabel { transition: opacity .2s ease; }
+
+.focusRail {
+  padding: 24px !important;
+  background: rgba(7, 17, 31, .94) !important;
+}
+
+.focusClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(171, 205, 218, .2);
+  border-radius: 50%;
+  background: transparent;
+  color: #dce8ec;
+}
+
+.focusTitle {
+  max-width: 11ch;
+  margin: 10px 42px 14px 0;
+  font-size: 1.55rem;
+  font-weight: 560;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.focusNote {
+  margin: 0 0 14px;
+  padding: 10px 0 10px 12px;
+  border-left: 2px solid #b78c60;
+  color: #d7b38d;
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.focusSummary {
+  margin: 0 0 18px;
+  color: #9db0b9;
+  font-size: .76rem;
+  line-height: 1.58;
+}
+
+.focusMetrics {
+  display: grid;
+  margin: 0 0 22px;
+  border-top: 1px solid rgba(147, 180, 193, .12);
+}
+
+.focusMetrics div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(147, 180, 193, .12);
+}
+
+.focusMetrics dt { color: #8fa3ad; font-size: .68rem; }
+.focusMetrics dd { margin: 0; color: #dce8ec; font: 600 .76rem var(--font-geist-mono), monospace; }
+
+.suggestionHead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.suggestionHead > span { color: #708892; font-size: .58rem; }
+.calendarSuggestions { display: grid; border-top: 1px solid rgba(147, 180, 193, .12); }
+
+.calendarSuggestions a {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(147, 180, 193, .12);
+  color: #dce8ec;
+}
+
+.calendarSuggestions > a > span { color: #708892; font: 500 .55rem var(--font-geist-mono), monospace; }
+.calendarSuggestions a div { display: grid; gap: 3px; }
+.calendarSuggestions strong { font-size: .72rem; font-weight: 560; }
+.calendarSuggestions small { color: #78909c; font-size: .6rem; line-height: 1.35; }
+.calendarSuggestions svg { color: #76caff; transition: transform .2s ease; }
+.calendarSuggestions a:hover svg { transform: translateX(3px); }
+.focusSafety { margin: 16px 0 0; color: #708892; font-size: .61rem; line-height: 1.5; }
+
+@media (max-width: 700px) {
+  .focusRail { padding: 18px !important; }
+  .focusTitle { font-size: 1.35rem; }
+  .focusSummary { font-size: .72rem; }
+  .focusMetrics { grid-template-columns: 1fr 1fr; column-gap: 18px; margin-bottom: 16px; }
+  .focusMetrics div { display: grid; gap: 4px; }
+  .calendarSuggestions a { padding: 10px 0; }
+  .focusSafety { padding-bottom: 4px; }
+}
