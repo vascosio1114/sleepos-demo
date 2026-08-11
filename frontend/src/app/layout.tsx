@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Outfit } from "next/font/google";
+import { preload } from "react-dom";
 import { AppShell } from "@/components/app-shell";
 import { PlanProvider } from "@/components/plan-provider";
 import { wellnessDisclaimer } from "@/lib/demo-data";
@@ -22,6 +23,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  preload("/explore/models/body.glb", {
+    as: "fetch",
+    type: "model/gltf-binary",
+    crossOrigin: "anonymous",
+    fetchPriority: "high",
+  });
+  preload("/explore/models/skin-v6.glb", {
+    as: "fetch",
+    type: "model/gltf-binary",
+    crossOrigin: "anonymous",
+    fetchPriority: "high",
+  });
+
   return (
     <html lang="en" className={`${outfit.variable} ${jetBrainsMono.variable}`}>
       <body>
