@@ -16,7 +16,7 @@ const baseConfig: ProviderConfig = {
   audioRetention: "none",
   defaultLanguage: "en-US",
   minimax: { apiKey: null, baseUrl: null, textModel: null, ttsModel: null, ttsVoice: null },
-  google: { credentialsPath: null, projectId: null },
+  google: { credentialsPath: null, credentialsJson: null, projectId: null },
   paths: { knowledgeBundle: null, evaluationSuite: null },
 };
 
@@ -26,6 +26,7 @@ const liveConfig: ProviderConfig = {
   sttProvider: "google_stt_v2",
   google: {
     credentialsPath: "/tmp/fake-sa.json",
+    credentialsJson: null,
     projectId: "demo-project",
   },
 };
@@ -42,12 +43,12 @@ describe("createSpeechToTextProvider", () => {
   });
 
   it("falls back to mock when providerMode is live but credentials path is missing", () => {
-    const provider = createSpeechToTextProvider({ ...liveConfig, google: { credentialsPath: null, projectId: "demo-project" } });
+    const provider = createSpeechToTextProvider({ ...liveConfig, google: { credentialsPath: null, credentialsJson: null, projectId: "demo-project" } });
     expect(provider.providerKey).toBe("mock");
   });
 
   it("falls back to mock when projectId is missing", () => {
-    const provider = createSpeechToTextProvider({ ...liveConfig, google: { credentialsPath: "/tmp/fake-sa.json", projectId: null } });
+    const provider = createSpeechToTextProvider({ ...liveConfig, google: { credentialsPath: "/tmp/fake-sa.json", credentialsJson: null, projectId: null } });
     expect(provider.providerKey).toBe("mock");
   });
 });

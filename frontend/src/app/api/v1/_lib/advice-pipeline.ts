@@ -22,14 +22,8 @@ function getProviderConfig(): import("../../../../lib/voice-advice/env").Provide
   // We still want the factory to return a provider (mock fallback) even on failure.
   const result = loadProviderConfig();
   if (result.ok) {
-    const c = result.config;
-    console.log("[advice-pipeline DEBUG] ok mode:", c.providerMode, "advice:", c.adviceProvider, "hasKey:", Boolean(c.minimax.apiKey), "model:", c.minimax.textModel);
-    return c;
+    return result.config;
   }
-  console.log("[advice-pipeline DEBUG] failed issues:", JSON.stringify(result.issues));
-  console.log("[advice-pipeline DEBUG] process.env.SLEEPOS_PROVIDER_MODE:", process.env.SLEEPOS_PROVIDER_MODE);
-  console.log("[advice-pipeline DEBUG] process.env.SLEEPOS_ADVICE_PROVIDER:", process.env.SLEEPOS_ADVICE_PROVIDER);
-  console.log("[advice-pipeline DEBUG] process.env.MINIMAX_API_KEY present:", Boolean(process.env.MINIMAX_API_KEY));
   // Validation failed — fall back to mock-mode defaults.
   return {
     providerMode: "mock",
@@ -45,7 +39,7 @@ function getProviderConfig(): import("../../../../lib/voice-advice/env").Provide
       ttsModel: null,
       ttsVoice: null,
     },
-    google: { credentialsPath: null, projectId: null },
+    google: { credentialsPath: null, credentialsJson: null, projectId: null },
     paths: { knowledgeBundle: null, evaluationSuite: null },
   };
 }

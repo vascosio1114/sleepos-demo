@@ -22,6 +22,7 @@ export const PROVIDER_CONFIG_KEYS = {
   defaultLanguage: "SLEEPOS_STT_DEFAULT_LANGUAGE",
   audioRetention: "SLEEPOS_VOICE_AUDIO_RETENTION",
   googleCredentialsPath: "GOOGLE_APPLICATION_CREDENTIALS",
+  googleCredentialsJson: "GOOGLE_APPLICATION_CREDENTIALS_JSON",
   googleSttProjectId: "SLEEPOS_GOOGLE_STT_PROJECT_ID",
   minimaxApiKey: "MINIMAX_API_KEY",
   minimaxBaseUrl: "MINIMAX_API_BASE_URL",
@@ -57,6 +58,7 @@ export interface ProviderConfig {
   };
   google: {
     credentialsPath: string | null;
+    credentialsJson: string | null;
     projectId: string | null;
   };
   paths: {
@@ -139,6 +141,7 @@ export function loadProviderConfig(env: EnvLike = process.env): ProviderConfigRe
       },
       google: {
         credentialsPath: pickString(PROVIDER_CONFIG_KEYS.googleCredentialsPath, env[PROVIDER_CONFIG_KEYS.googleCredentialsPath]),
+        credentialsJson: pickString(PROVIDER_CONFIG_KEYS.googleCredentialsJson, env[PROVIDER_CONFIG_KEYS.googleCredentialsJson]),
         projectId: pickString(PROVIDER_CONFIG_KEYS.googleSttProjectId, env[PROVIDER_CONFIG_KEYS.googleSttProjectId]),
       },
       paths: {

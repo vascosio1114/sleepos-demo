@@ -198,9 +198,6 @@ export class MiniMaxAdviceProvider implements AdviceProvider {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TEXT_TIMEOUT_MS);
     try {
-      console.log("[MiniMax DEBUG] apiKey length:", apiKey.length, "first 8:", apiKey.slice(0, 8), "all-ASCII:", /^[A-Za-z0-9_=-]+$/.test(apiKey));
-      const authHeader = `Bearer ${apiKey}`;
-      console.log("[MiniMax DEBUG] auth header length:", authHeader.length, "starts:", authHeader.slice(0, 20), "ends:", authHeader.slice(-10));
       const response = await fetch(`${baseUrl.replace(/\/$/, "")}/v1/text/chatcompletion_v2`, {
         method: "POST",
         headers: {
@@ -210,27 +207,19 @@ export class MiniMaxAdviceProvider implements AdviceProvider {
         body: JSON.stringify(body),
         signal: controller.signal,
       });
-      console.log("[MiniMax DEBUG] response status:", response.status);
-      if (response.status !== 200) {
-        const txt = await response.text().catch(() => "");
-        console.log("[MiniMax DEBUG] non-200 body:", txt.slice(0, 300));
-      }
 
       if (!response.ok) {
         return safeFallback(input, `http_${response.status}`);
       }
 
       const rawText = await response.text();
-      console.log("[MiniMax DEBUG] rawText length:", rawText.length, "first 400:", rawText.slice(0, 400));
       let json: MiniMaxResponse;
       try {
         json = JSON.parse(rawText) as MiniMaxResponse;
       } catch {
-        console.log("[MiniMax DEBUG] JSON parse failed");
         return safeFallback(input, "json_parse");
       }
       const content = json.choices?.[0]?.message?.content;
-      console.log("[MiniMax DEBUG] content length:", content?.length ?? 0, "first 300:", JSON.stringify(content).slice(0, 300));
       if (typeof content !== "string" || content.length === 0) {
         return safeFallback(input, "empty_content");
       }

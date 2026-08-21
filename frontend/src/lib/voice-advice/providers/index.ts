@@ -26,13 +26,15 @@ export function createTextToSpeechProvider(config: ProviderConfig): TextToSpeech
 }
 
 export function createSpeechToTextProvider(config: ProviderConfig): SpeechToTextProvider {
+  const googleCredentials = config.google.credentialsJson ?? config.google.credentialsPath;
+  const googleCredentialsSource = config.google.credentialsJson ? "json" : "path";
   if (
     config.providerMode === "live" &&
     config.sttProvider === "google_stt_v2" &&
-    config.google.credentialsPath &&
+    googleCredentials &&
     config.google.projectId
   ) {
-    return new GoogleSpeechToTextProvider(config.google.credentialsPath, config.google.projectId);
+    return new GoogleSpeechToTextProvider(googleCredentials, config.google.projectId, googleCredentialsSource);
   }
   return new MockSpeechToTextProvider();
 }

@@ -1,7 +1,8 @@
 // Google Cloud Speech-to-Text V2 (v1 REST) provider.
 // Implements the `SpeechToTextProvider` interface. Reads
-// `GOOGLE_APPLICATION_CREDENTIALS` (service account JSON path) + project
-// id from env at construction; never persists the credentials.
+// `GOOGLE_APPLICATION_CREDENTIALS` (service account JSON path) or
+// `GOOGLE_APPLICATION_CREDENTIALS_JSON` (raw service account JSON for Vercel)
+// + project id from env at construction; never persists the credentials.
 // Auth: JWT-signed access token exchange against the service
 // account's `token_uri`. Token is cached until ~5 minutes before
 // expiry.
@@ -17,8 +18,9 @@
 // PREREQUISITES (out of scope for the mock-mode demo):
 //   1. Create a GCP service account with the "Speech Client" role.
 //   2. Download the JSON key.
-//   3. Set GOOGLE_APPLICATION_CREDENTIALS=/abs/path/to/key.json
-//      and SLEEPOS_GOOGLE_STT_PROJECT_ID=your-project-id in .env.local.
+//   3. Set GOOGLE_APPLICATION_CREDENTIALS=/abs/path/to/key.json locally,
+//      or GOOGLE_APPLICATION_CREDENTIALS_JSON={...} on Vercel, plus
+//      SLEEPOS_GOOGLE_STT_PROJECT_ID=your-project-id.
 //   4. Set SLEEPOS_STT_PROVIDER=google_stt_v2 to switch from mock.
 
 import { createSign, createPrivateKey, randomUUID } from "node:crypto";
@@ -54,13 +56,17 @@ function base64url(input: string | Buffer): string {
   return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-async function loadServiceAccount(path: string): Promise<ServiceAccountJson> {
-  const raw = await fs.readFile(path, "utf8");
+function parseServiceAccount(raw: string, sourceLabel: string): ServiceAccountJson {
   const parsed = JSON.parse(raw) as ServiceAccountJson;
   if (parsed.type !== "service_account" || !parsed.private_key || !parsed.client_email || !parsed.token_uri) {
-    throw new Error(`Service account JSON at ${path} is malformed.`);
+    throw new Error(`Service account JSON from ${sourceLabel} is malformed.`);
   }
   return parsed;
+}
+
+async function loadServiceAccount(path: string): Promise<ServiceAccountJson> {
+  const raw = await fs.readFile(path, "utf8");
+  return parseServiceAccount(raw, path);
 }
 
 async function exchangeAccessToken(sa: ServiceAccountJson, key: import("node:crypto").KeyObject): Promise<AccessTokenCache> {
@@ -119,7 +125,8 @@ interface SessionState {
 
 export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
   readonly providerKey = "google_stt_v2" as const;
-  private readonly serviceAccountPath: string;
+  private readonly serviceAccountSource: string;
+  private readonly serviceAccountSourceType: "path" | "json";
   private readonly projectId: string;
   private readonly sessions = new Map<string, SessionState>();
   private tokenCache: AccessTokenCache | null = null;
@@ -127,15 +134,19 @@ export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
   private privateKeyCache: import("node:crypto").KeyObject | null = null;
   private loadingPromise: Promise<ServiceAccountJson> | null = null;
 
-  constructor(serviceAccountPath: string, projectId: string) {
-    this.serviceAccountPath = serviceAccountPath;
+  constructor(serviceAccountSource: string, projectId: string, serviceAccountSourceType: "path" | "json" = "path") {
+    this.serviceAccountSource = serviceAccountSource;
+    this.serviceAccountSourceType = serviceAccountSourceType;
     this.projectId = projectId;
   }
 
   private async getServiceAccount(): Promise<ServiceAccountJson> {
     if (this.serviceAccount) return this.serviceAccount;
     if (this.loadingPromise) return this.loadingPromise;
-    this.loadingPromise = loadServiceAccount(this.serviceAccountPath);
+    this.loadingPromise =
+      this.serviceAccountSourceType === "json"
+        ? Promise.resolve(parseServiceAccount(this.serviceAccountSource, "GOOGLE_APPLICATION_CREDENTIALS_JSON"))
+        : loadServiceAccount(this.serviceAccountSource);
     try {
       this.serviceAccount = await this.loadingPromise;
       return this.serviceAccount;
