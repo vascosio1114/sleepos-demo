@@ -37,6 +37,7 @@ The canonical phase scope and phase exit gates are defined in `PRODUCT_REQUIREME
 | 07 | Security Review | P0 | 02,04,05 | 06 | Security Agent | `tasks/07_Security.md` |
 | 08 | Release / Hardening | P1 | 06,07 | — | Orchestrator | `tasks/08_Release.md` |
 | 09 | Demo Onboarding & Consultation | P1 | 03,05 | — | Frontend Agent | `tasks/09_Onboarding_Consultation.md` |
+| 10 | Voice / AI Advice / Brain Score Contracts | P1 | 01 | 02,03 | Architect | `tasks/10_Voice_Advice_Contracts.md` |
 
 ## Recommended Execution Waves
 - **Wave 1 — Foundation:** 01
@@ -46,6 +47,7 @@ The canonical phase scope and phase exit gates are defined in `PRODUCT_REQUIREME
 - **Wave 5 — Parallel Validation:** 06 / 07
 - **Wave 6 — Release / Hardening:** 08
 - **Wave 7 — Pilot-safe local UX:** 09 (onboarding and simulated consultation only; no real-data activation)
+- **Wave 8 — Voice / AI Advice / Brain Score stream (additive):** 10 (contract authoring now; Phases 1–5 of `A2A_VOICE_BRAIN_INTEGRATION_PLAN.md` queue behind Tasks 11–15)
 - **Cross-cutting:** docs, contract sync, progress signatures, independent review.
 
 ## Phase Gates

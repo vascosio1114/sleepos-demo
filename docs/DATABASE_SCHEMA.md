@@ -322,3 +322,297 @@ No migration has been executed. Before execution: inspect target project and mig
 Canonical daily metrics and source labels remain seed-owned and are not accepted from untrusted snapshot mutations. Snapshot parsing uses shared runtime schemas; incompatible or corrupt data resets safely.
 
 Independent database/security review remains pending. No schema is approved for real user data yet.
+
+---
+
+## 10. Voice, AI Advice, and Brain Score (Task 10 — Additive Stream)
+
+This section adds the entities required by `docs/A2A_VOICE_BRAIN_INTEGRATION_PLAN.md`. Every table here is **additive**: no P0 row is invalidated, the `action_type` enum gains an additional value (`routine`), and a new enum family is introduced. No migration is executed until the Phase 5 security/privacy gate is approved.
+
+### 10.1 New PostgreSQL Enums
+
+| Type | Values |
+|---|---|
+| `safety_level` | `green`, `amber`, `red` |
+| `safety_reason_code` | `crisis_self_harm`, `crisis_medical_emergency`, `diagnosis_request`, `medication_change_request`, `sustained_decline_self_report`, `conflicting_metric_signals`, `minor_low_risk_wellness`, `no_signals` |
+| `voice_session_state` | `requested`, `opening`, `recording`, `transcribing`, `awaiting_confirmation`, `confirmed`, `analyzing`, `awaiting_advice`, `speaking`, `completed`, `abandoned`, `failed` |
+| `provider_mode` | `mock`, `live` |
+| `stt_provider_key` | `mock`, `google_stt_v2`, `gemini_live` |
+| `advice_provider_key` | `mock`, `minimax` |
+| `tts_provider_key` | `mock`, `minimax_tts` |
+| `voice_language` | `en-US`, `en-GB`, `zh-HK`, `yue-Hant-HK` |
+| `brain_domain` | `attention`, `regulation`, `memory`, `sleep_arousal` |
+| `brain_score_mode` | `demo`, `self_report`, `cognitive_task`, `qEEG`, `HEG` |
+| `brain_score_quality` | `acceptable`, `marginal`, `poor`, `unverified` |
+| `evidence_level` | `expert_consensus`, `peer_reviewed`, `regulatory_body`, `industry_guideline`, `manufacturer_material`, `demo_only` |
+| `knowledge_status` | `draft`, `pending_review`, `approved`, `superseded`, `withdrawn`, `expired` |
+| `checkin_source` | `voice_confirmed`, `manual_entry` |
+| `voice_audio_retention` | `none`, `enabled_storage`, `research_grant` |
+
+The existing `action_type` enum gains an additive value:
+
+```sql
+ALTER TYPE action_type ADD VALUE 'routine';
+```
+
+This is forward-compatible — existing three values keep their wire representation.
+
+### 10.2 Tables
+
+#### `voice_sessions`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK; client-generatable |
+| `user_id` | `uuid` | No | FK `profiles.id` on delete cascade |
+| `state` | `voice_session_state` | No | — |
+| `stt_provider_key` | `stt_provider_key` | No | — |
+| `provider_mode` | `provider_mode` | No | — |
+| `language` | `voice_language` | No | — |
+| `audio_retention` | `voice_audio_retention` | No | default `none` |
+| `started_at` | `timestamptz` | No | — |
+| `completed_at` | `timestamptz` | Yes | `>= started_at` |
+| `abandoned_at` | `timestamptz` | Yes | `>= started_at` |
+| `duration_seconds` | `integer` | Yes | check 1..7200 |
+| `confirmed_segment_count` | `smallint` | No | default 0, check >= 0 |
+| `flagged_segment_count` | `smallint` | No | default 0, check >= 0 |
+| `schema_version` | `text` | No | length 1..40 |
+| `notes` | `jsonb` | No | default `'[]'`; audit-only; no raw audio |
+| `created_at` | `timestamptz` | No | `now()` |
+| `updated_at` | `timestamptz` | No | `now()` |
+
+**Raw audio is NEVER stored in this table.** The default `audio_retention` is `none`; any other value requires an `audio_storage_consent_id` row in a future consent ledger (Phase 5).
+
+Indexes:
+
+- `voice_sessions_user_started_idx` `(user_id, started_at desc)`
+- `voice_sessions_state_idx` `(state)` where `state not in ('completed','abandoned','failed')`
+
+#### `transcript_segments`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK |
+| `session_id` | `uuid` | No | FK `voice_sessions.id` on delete cascade |
+| `user_id` | `uuid` | No | FK `profiles.id` on delete cascade (denormalised for RLS) |
+| `ordinal` | `smallint` | No | check >= 0 |
+| `text` | `text` | No | length 1..240; **only persisted when `is_confirmed = true`** |
+| `language` | `voice_language` | No | — |
+| `confidence` | `numeric(4,3)` | No | check 0..1 |
+| `started_at_ms` | `integer` | No | check >= 0 |
+| `ended_at_ms` | `integer` | No | `>= started_at_ms` |
+| `is_confirmed` | `boolean` | No | must be `true` for storage |
+| `user_edited` | `boolean` | No | — |
+| `provider_meta` | `jsonb` | Yes | bounded; never contains audio |
+| `created_at` | `timestamptz` | No | `now()` |
+
+Indexes:
+
+- `transcript_segments_session_ordinal_uq` unique `(session_id, ordinal)`
+- `transcript_segments_user_created_idx` `(user_id, created_at desc)`
+
+A check constraint enforces `is_confirmed = true` (segments without user confirmation must never be persisted).
+
+#### `health_checkins`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK |
+| `user_id` | `uuid` | No | FK `profiles.id` on delete cascade |
+| `local_date` | `date` | No | — |
+| `schema_version` | `text` | No | constant `health-checkin-v1` |
+| `source` | `checkin_source` | No | — |
+| `captured_at` | `timestamptz` | No | — |
+| `sleep_quality_score` | `smallint` | Yes | check 0..100 |
+| `sleep_minutes` | `smallint` | Yes | check 0..1440 |
+| `stress_score` | `smallint` | Yes | check 0..10 |
+| `mood_score` | `smallint` | Yes | check 0..10 |
+| `focus_score` | `smallint` | Yes | check 0..100 |
+| `confirmed_note` | `text` | Yes | length 1..600 |
+| `source_segment_ids` | `uuid[]` | Yes | references `transcript_segments.id`; soft FK validated at service layer |
+| `created_at` | `timestamptz` | No | `now()` |
+
+Unique: `(user_id, local_date)`. The five self-report fields map to the existing canonical metric ranges from `SHARED_KEYS.md` §3.
+
+#### `advice_runs`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK |
+| `user_id` | `uuid` | No | FK `profiles.id` on delete cascade |
+| `session_id` | `uuid` | Yes | FK `voice_sessions.id` on delete set null |
+| `checkin_id` | `uuid` | Yes | FK `health_checkins.id` on delete set null |
+| `advice_provider_key` | `advice_provider_key` | No | — |
+| `provider_mode` | `provider_mode` | No | — |
+| `prompt_version` | `text` | No | length 1..40 |
+| `knowledge_version` | `text` | No | length 1..40 |
+| `safety_level` | `safety_level` | No | — |
+| `safety_reason_codes` | `safety_reason_code[]` | No | non-empty |
+| `status` | `text` | No | `pending` \| `succeeded` \| `failed_safe_fallback` |
+| `started_at` | `timestamptz` | No | — |
+| `completed_at` | `timestamptz` | Yes | `>= started_at` |
+| `latency_ms` | `integer` | Yes | check >= 0 |
+| `created_at` | `timestamptz` | No | `now()` |
+
+**Never stores:** raw prompt text containing user content; provider API keys; full transcript text. May store bounded hashed identifiers.
+
+Indexes:
+
+- `advice_runs_user_started_idx` `(user_id, started_at desc)`
+- `advice_runs_status_idx` `(status)` where `status <> 'succeeded'`
+
+#### `advice_items`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK |
+| `advice_run_id` | `uuid` | No | FK `advice_runs.id` on delete cascade |
+| `user_id` | `uuid` | No | FK `profiles.id` on delete cascade |
+| `ordinal` | `smallint` | No | check 1..3 |
+| `action_type` | `action_type` | No | includes new `routine` value |
+| `routine_key` | `text` | Yes | allowlisted `RoutineKey` from SHARED_KEYS §5; required when `action_type = 'routine'` |
+| `title` | `text` | No | length 1..80 |
+| `reason` | `text` | No | length 1..240 |
+| `duration_minutes` | `smallint` | No | check 0..60 |
+| `risk_level` | `text` | No | constant `low` (allowlist enforced) |
+| `source_ids` | `text[]` | No | references `knowledge_documents.document_id` (soft FK) |
+| `accepted_at` | `timestamptz` | Yes | set when user adds the item to Plan |
+| `created_at` | `timestamptz` | No | `now()` |
+
+Unique: `(advice_run_id, ordinal)`. A deferred constraint enforces at most three items per `advice_run_id`.
+
+#### `brain_score_snapshots`
+
+Distinct from `brain_assessments` (P0 brain-training protocol aggregate). This table captures multi-mode functional-domain scores with explicit `mode` provenance.
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK |
+| `user_id` | `uuid` | No | FK `profiles.id` on delete cascade |
+| `protocol_version` | `text` | No | constant `brain-domain-v1` |
+| `mode` | `brain_score_mode` | No | — |
+| `assessor_id` | `text` | Yes | required when `mode in ('qEEG','HEG')`; length 1..64 |
+| `captured_at` | `timestamptz` | No | — |
+| `domains` | `jsonb` | No | array of `{key, score, status, measured, sourceMetricKeys, quality}` |
+| `regional_scores` | `jsonb` | No | default `'[]'`; populated only by qualified assessment sources |
+| `five_d_scores` | `jsonb` | No | default `'[]'`; surfaced only in trainer preview |
+| `disclaimer_key` | `text` | No | constant `wellness_not_diagnosis` |
+| `created_at` | `timestamptz` | No | `now()` |
+
+Indexes:
+
+- `brain_snapshots_user_captured_idx` `(user_id, captured_at desc)`
+- `brain_snapshots_mode_idx` `(mode)`
+
+`regional_scores` MUST be an empty array unless the row's `mode ∈ {qEEG, HEG}` and `assessor_id` is non-null. Enforced via row-level CHECK.
+
+#### `knowledge_documents`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `text` | No | PK; canonical slug |
+| `title` | `text` | No | length 1..200 |
+| `topic` | `text` | No | allowlisted topic tag |
+| `language` | `text` | No | BCP-47 |
+| `source_url` | `text` | No | length 1..400 |
+| `source_file` | `text` | No | length 1..200 |
+| `evidence_level` | `evidence_level` | No | — |
+| `allowed_use` | `text[]` | No | non-empty |
+| `prohibited_claims` | `text[]` | No | default `'{}'` |
+| `reviewed_by` | `text` | Yes | required when `status = 'approved'` |
+| `reviewed_at` | `timestamptz` | Yes | required when `status = 'approved'` |
+| `expires_at` | `timestamptz` | Yes | nullable |
+| `version` | `text` | No | length 1..40 |
+| `status` | `knowledge_status` | No | — |
+| `created_at` | `timestamptz` | No | `now()` |
+| `updated_at` | `timestamptz` | No | `now()` |
+
+CHECK: `status = 'approved'` requires non-null `reviewed_by` and `reviewed_at`.
+
+#### `knowledge_chunks`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `text` | No | PK; slug + ordinal |
+| `document_id` | `text` | No | FK `knowledge_documents.id` on delete cascade |
+| `ordinal` | `smallint` | No | check >= 0 |
+| `content` | `text` | No | length 1..1200 |
+| `topic_tags` | `text[]` | No | allowlisted |
+| `content_hash` | `text` | No | SHA-256 hex |
+| `embedding` | `vector(1536)` | Yes | optional; pgvector; only on providers that support it |
+| `created_at` | `timestamptz` | No | `now()` |
+
+Unique: `(document_id, ordinal)`. The chunk is rejected if its `document_id` row has `status <> 'approved'`.
+
+#### `model_evaluations`
+
+| Column | Type | Null | Default / constraints |
+|---|---|---:|---|
+| `id` | `uuid` | No | PK |
+| `advice_provider_key` | `advice_provider_key` | No | — |
+| `model_id` | `text` | No | length 1..80 |
+| `prompt_version` | `text` | No | length 1..40 |
+| `knowledge_version` | `text` | No | length 1..40 |
+| `suite_path` | `text` | No | path to the JSONL suite |
+| `suite_version` | `text` | No | length 1..40 |
+| `total_cases` | `integer` | No | check >= 0 |
+| `passed_cases` | `integer` | No | check 0..total_cases |
+| `failed_case_ids` | `text[]` | Yes | non-empty when `passed_cases < total_cases` |
+| `started_at` | `timestamptz` | No | — |
+| `completed_at` | `timestamptz` | No | `>= started_at` |
+| `created_at` | `timestamptz` | No | `now()` |
+
+Indexes:
+
+- `model_evals_provider_prompt_idx` `(advice_provider_key, prompt_version, knowledge_version)`
+
+### 10.3 Relationships
+
+```text
+profiles 1--* voice_sessions 1--* transcript_segments
+profiles 1--* health_checkins 1--* advice_runs 1--* advice_items
+profiles 1--* brain_score_snapshots
+knowledge_documents 1--* knowledge_chunks
+```
+
+`health_checkins` and `advice_runs` are loosely linked to `voice_sessions` via nullable FKs (a check-in may exist without a session, and an advice run may exist without a check-in if it was triggered from deterministic rules alone).
+
+### 10.4 Required Indexes
+
+| Index | Columns | Reason |
+|---|---|---|
+| `voice_sessions_user_started_idx` | `(user_id, started_at desc)` | Session history |
+| `voice_sessions_state_idx` | partial `(state)` where active | Recovery sweeps |
+| `transcript_segments_session_ordinal_uq` | unique `(session_id, ordinal)` | Ordered playback |
+| `transcript_segments_user_created_idx` | `(user_id, created_at desc)` | Audit lookup |
+| `health_checkins_user_date_uq` | unique `(user_id, local_date)` | One checkin per day |
+| `advice_runs_user_started_idx` | `(user_id, started_at desc)` | History |
+| `advice_items_run_ordinal_uq` | unique `(advice_run_id, ordinal)` | Stable list |
+| `brain_snapshots_user_captured_idx` | `(user_id, captured_at desc)` | Current + history |
+| `brain_snapshots_mode_idx` | `(mode)` | Filter demo / qEEG |
+| `knowledge_chunks_document_ordinal_uq` | unique `(document_id, ordinal)` | Stable chunk order |
+| `model_evals_provider_prompt_idx` | `(advice_provider_key, prompt_version, knowledge_version)` | Regression lookup |
+
+### 10.5 RLS and Retention (Phase 5 Gate)
+
+- RLS policies mirror §6 patterns: every user-owned table is `enable row level security` and `force row level security`.
+- `transcript_segments.user_id` is denormalised so RLS can evaluate without traversing to `voice_sessions`.
+- No raw audio bytes are ever stored; the `audio_retention` column documents the policy only.
+- `knowledge_documents.status = 'approved'` rows are public-readable to all authenticated users (knowledge is non-personal); non-approved rows are visible only to reviewers.
+- `model_evaluations` rows are admin-only.
+- Retention defaults (subject to legal review):
+  - `voice_sessions` + `transcript_segments`: 90 days unless user deletes sooner.
+  - `health_checkins` + `advice_runs` + `advice_items`: 12 months.
+  - `brain_score_snapshots`: 24 months.
+  - `knowledge_documents` + `knowledge_chunks`: until `withdrawn` + 12 months audit tail.
+  - `model_evaluations`: 24 months.
+- Pilot activation requires the retention values above to be confirmed by Privacy / Security reviewer.
+
+### 10.6 Migration Plan (additive)
+
+| Version | Scope | Rollback |
+|---|---|---|
+| `004` | New enums; `action_type` additive `routine` value; tables `voice_sessions`, `transcript_segments`, `health_checkins`, `advice_runs`, `advice_items`, `brain_score_snapshots`, `knowledge_documents`, `knowledge_chunks`, `model_evaluations`; indexes; constraints | Drop new tables in empty environment; cannot remove `routine` enum value once committed (use `IF EXISTS` rename strategy instead) |
+| `005` | RLS enablement and user-ownership policies for new tables | Revoke access before rollback |
+
+No migration is executed before Phase 5 privacy/security review.

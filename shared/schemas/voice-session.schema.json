@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepos.local/schemas/voice-session.schema.json",
+  "title": "VoiceSession",
+  "description": "One user voice check-in session. No raw audio bytes; transcript only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sessionId",
+    "userId",
+    "state",
+    "sttProviderKey",
+    "language",
+    "startedAt",
+    "schemaVersion"
+  ],
+  "properties": {
+    "sessionId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "state": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "opening",
+        "recording",
+        "transcribing",
+        "awaiting_confirmation",
+        "confirmed",
+        "analyzing",
+        "awaiting_advice",
+        "speaking",
+        "completed",
+        "abandoned",
+        "failed"
+      ]
+    },
+    "sttProviderKey": { "type": "string", "enum": ["mock", "google_stt_v2", "gemini_live"] },
+    "language": { "type": "string", "enum": ["en-US", "en-GB", "zh-HK", "yue-Hant-HK"] },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": ["string", "null"], "format": "date-time" },
+    "abandonedAt": { "type": ["string", "null"], "format": "date-time" },
+    "durationSeconds": { "type": ["integer", "null"], "minimum": 0, "maximum": 7200 },
+    "confirmedSegmentCount": { "type": "integer", "minimum": 0 },
+    "flaggedSegmentCount": { "type": "integer", "minimum": 0 },
+    "schemaVersion": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "code"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "code": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "detail": { "type": "string", "maxLength": 280 }
+        }
+      }
+    }
+  }
+}

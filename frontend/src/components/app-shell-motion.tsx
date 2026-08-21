@@ -28,35 +28,46 @@ export function AppShellMotion({ pathname, shellRef }: AppShellMotionProps) {
       );
 
       if (window.matchMedia(reduceMotionQuery).matches) {
-        gsap.set([pageContent, activeNavigation], {
-          clearProps: "opacity,visibility,transform",
-        });
+        if (pageContent.length > 0) {
+          gsap.set(pageContent, {
+            clearProps: "opacity,visibility,transform",
+          });
+        }
+        if (activeNavigation.length > 0) {
+          gsap.set(activeNavigation, {
+            clearProps: "opacity,visibility,transform",
+          });
+        }
         return;
       }
 
-      gsap.fromTo(
-        pageContent,
-        { autoAlpha: 0, y: 10 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.28,
-          ease: "power2.out",
-          clearProps: "opacity,visibility,transform",
-        },
-      );
+      if (pageContent.length > 0) {
+        gsap.fromTo(
+          pageContent,
+          { autoAlpha: 0, y: 10 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.28,
+            ease: "power2.out",
+            clearProps: "opacity,visibility,transform",
+          },
+        );
+      }
 
-      gsap.fromTo(
-        activeNavigation,
-        { autoAlpha: 0.72, y: 2 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.22,
-          ease: "power2.out",
-          clearProps: "opacity,visibility,transform",
-        },
-      );
+      if (activeNavigation.length > 0) {
+        gsap.fromTo(
+          activeNavigation,
+          { autoAlpha: 0.72, y: 2 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.22,
+            ease: "power2.out",
+            clearProps: "opacity,visibility,transform",
+          },
+        );
+      }
     }, shell);
 
     return () => context.revert();

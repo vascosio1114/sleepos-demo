@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepos.local/schemas/knowledge-document.schema.json",
+  "title": "KnowledgeDocument",
+  "description": "Approved-source metadata for the RAG knowledge base. status='approved' requires reviewedBy and reviewedAt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "documentId",
+    "title",
+    "topic",
+    "language",
+    "sourceUrl",
+    "sourceFile",
+    "evidenceLevel",
+    "allowedUse",
+    "prohibitedClaims",
+    "reviewedBy",
+    "reviewedAt",
+    "expiresAt",
+    "version",
+    "status"
+  ],
+  "properties": {
+    "documentId": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "topic": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "language": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
+    "sourceUrl": { "type": "string", "format": "uri", "maxLength": 400 },
+    "sourceFile": { "type": "string", "maxLength": 200 },
+    "evidenceLevel": {
+      "type": "string",
+      "enum": ["expert_consensus", "peer_reviewed", "regulatory_body", "industry_guideline", "manufacturer_material", "demo_only"]
+    },
+    "allowedUse": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 16 },
+    "prohibitedClaims": { "type": "array", "items": { "type": "string" }, "maxItems": 64 },
+    "reviewedBy": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "reviewedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": ["string", "null"], "format": "date-time" },
+    "version": { "type": "string", "minLength": 1, "maxLength": 40 },
+    "status": { "type": "string", "enum": ["draft", "pending_review", "approved", "superseded", "withdrawn", "expired"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "approved" } }, "required": ["status"] },
+      "then": {
+        "required": ["reviewedBy", "reviewedAt"]
+      }
+    }
+  ]
+}

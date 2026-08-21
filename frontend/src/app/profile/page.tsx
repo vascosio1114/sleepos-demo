@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DatabaseIcon, ShieldCheckIcon } from "@phosphor-icons/react/dist/ssr";
 import { PageHeader } from "@/components/page-header";
+import { VoiceHistorySection } from "@/components/voice-history";
 import { alexDemo, sourceStatusLabel, type SourceStatus } from "@/lib/demo-data";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -43,6 +44,7 @@ export default function ProfilePage() {
         <div><h2>Privacy & settings</h2><p>Demo data only.</p></div>
         <Link className="button button-secondary" href="/onboarding">Review</Link>
       </section>
+      <VoiceHistorySection />
     </div>
   );
 }

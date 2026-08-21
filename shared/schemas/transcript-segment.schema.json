@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepos.local/schemas/transcript-segment.schema.json",
+  "title": "TranscriptSegment",
+  "description": "One confirmed transcript segment. ASR output that is not user-confirmed must NOT be persisted or sent to providers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "segmentId",
+    "text",
+    "language",
+    "confidence",
+    "startedAtMs",
+    "endedAtMs",
+    "isConfirmed",
+    "userEdited"
+  ],
+  "properties": {
+    "segmentId": { "type": "string", "format": "uuid" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "language": { "type": "string", "enum": ["en-US", "en-GB", "zh-HK", "yue-Hant-HK"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "startedAtMs": { "type": "integer", "minimum": 0 },
+    "endedAtMs": { "type": "integer", "minimum": 0 },
+    "isConfirmed": { "type": "boolean", "const": true },
+    "userEdited": { "type": "boolean" },
+    "providerMeta": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean"]
+      }
+    }
+  }
+}

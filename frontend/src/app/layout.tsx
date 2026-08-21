@@ -3,6 +3,7 @@ import { JetBrains_Mono, Outfit } from "next/font/google";
 import { preload } from "react-dom";
 import { AppShell } from "@/components/app-shell";
 import { PlanProvider } from "@/components/plan-provider";
+import { VoiceAdviceProvider } from "@/lib/voice-advice";
 import { wellnessDisclaimer } from "@/lib/demo-data";
 import "./globals.css";
 
@@ -41,10 +42,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
         <PlanProvider>
-          <AppShell>
-            {children}
-            <footer className="wellness-footer">{wellnessDisclaimer}</footer>
-          </AppShell>
+          <VoiceAdviceProvider>
+            <AppShell>
+              {children}
+              <footer className="wellness-footer">{wellnessDisclaimer}</footer>
+            </AppShell>
+          </VoiceAdviceProvider>
         </PlanProvider>
       </body>
     </html>

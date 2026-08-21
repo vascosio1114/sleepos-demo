@@ -8,6 +8,7 @@ import {
   CompassIcon,
   HouseIcon,
   ListChecksIcon,
+  MicrophoneIcon,
   UserCircleIcon,
 } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
@@ -15,6 +16,7 @@ import { AppShellMotion } from "@/components/app-shell-motion";
 
 const destinations: { href: string; label: string; icon: Icon }[] = [
   { href: "/", label: "Home", icon: HouseIcon },
+  { href: "/brain-coach", label: "Coach", icon: MicrophoneIcon },
   { href: "/explore", label: "Explore", icon: CompassIcon },
   { href: "/insights", label: "Insights", icon: BrainIcon },
   { href: "/plan", label: "Plan", icon: ListChecksIcon },

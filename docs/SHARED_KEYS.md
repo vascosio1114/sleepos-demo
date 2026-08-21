@@ -1,5 +1,8 @@
 # SleepOS Shared Keys Registry
 
+> Change log (additive; no breaking renames):
+> - 2026-08-19 — Task 10 / ADR-002: new voice / advice / brain-score enums; new env keys; additive `ActionType = routine`; new safety / escalation copy identifiers.
+
 ## 1. Rules
 
 - This is the canonical registry for names crossing UI, domain, API, persistence, tests, analytics, and integrations.
@@ -119,8 +122,22 @@ Mapping: `brain -> brain`; `heart_autonomic -> heart`; `lungs_breathing -> lungs
 - `brain_training`
 - `breathing`
 - `sleep_goal`
+- `routine` *(additive; introduced by Task 10 / ADR-002)*
 
-Canonical plan order is exactly the enum order above, priorities 1-3.
+Canonical plan order for the original three values is unchanged and equals the enum order above, priorities 1-3. The `routine` value is the fourth additive value for AI-advice-recommended habits (e.g. consistent wake time); it does not appear in the P0 demo Plan order. Existing clients that do not enumerate the length keep working.
+
+### `RoutineKey`
+
+Allowlisted routine identifiers emitted by `AdviceProvider` and accepted by `AdviceItem.routineKey`. Adding a value requires an entry in `docs/knowledge/approved/`.
+
+- `consistent_wake_time`
+- `wind_down_30_min_no_screens`
+- `no_caffeine_after_2pm`
+- `morning_daylight_10_min`
+- `regular_meal_times`
+- `hydration_balance`
+- `bedroom_dark_cool_quiet`
+- `short_walk_after_dinner`
 
 ### `DetailAction`
 
@@ -198,6 +215,121 @@ Never label a source `connected` unless a live verified connection exists.
 - `local`
 - `consented_provider`
 
+### `SafetyLevel` *(Task 10)*
+
+- `green`
+- `amber`
+- `red`
+
+The deterministic safety router is the source of truth; the model may not downgrade. `red` surfaces `escalationCopy`; `amber` surfaces `wellnessScope`; `green` is the ordinary wellness path.
+
+### `SafetyReasonCode` *(Task 10)*
+
+- `crisis_self_harm`
+- `crisis_medical_emergency`
+- `diagnosis_request`
+- `medication_change_request`
+- `sustained_decline_self_report`
+- `conflicting_metric_signals`
+- `minor_low_risk_wellness`
+- `no_signals`
+
+### `VoiceSessionState` *(Task 10)*
+
+- `requested`
+- `opening`
+- `recording`
+- `transcribing`
+- `awaiting_confirmation`
+- `confirmed`
+- `analyzing`
+- `awaiting_advice`
+- `speaking`
+- `completed`
+- `abandoned`
+- `failed`
+
+### `ProviderMode` *(Task 10)*
+
+- `mock`
+- `live`
+
+### `SttProviderKey` *(Task 10)*
+
+- `mock`
+- `google_stt_v2`
+- `gemini_live`
+
+### `AdviceProviderKey` *(Task 10)*
+
+- `mock`
+- `minimax`
+
+### `TtsProviderKey` *(Task 10)*
+
+- `mock`
+- `minimax_tts`
+
+### `VoiceLanguage` *(Task 10)*
+
+- `en-US` *(MVP primary)*
+- `en-GB`
+- `zh-HK` *(disabled in MVP)*
+- `yue-Hant-HK` *(disabled in MVP; reserved for粤语 path)*
+
+### `VoiceAudioRetentionPolicy` *(Task 10)*
+
+- `none` *(default)*
+- `enabled_storage` *(requires consent + privacy review)*
+- `research_grant` *(requires explicit research consent + retention policy)*
+
+### `BrainDomain` *(Task 10)*
+
+- `attention`
+- `regulation`
+- `memory`
+- `sleep_arousal`
+
+### `BrainScoreMode` *(Task 10)*
+
+- `demo`
+- `self_report`
+- `cognitive_task`
+- `qEEG`
+- `HEG`
+
+### `BrainScoreQuality` *(Task 10)*
+
+- `acceptable`
+- `marginal`
+- `poor`
+- `unverified`
+
+### `EvidenceLevel` *(Task 10; knowledge base)*
+
+- `expert_consensus`
+- `peer_reviewed`
+- `regulatory_body`
+- `industry_guideline`
+- `manufacturer_material`
+- `demo_only`
+
+### `KnowledgeStatus` *(Task 10; knowledge base)*
+
+- `draft`
+- `pending_review`
+- `approved`
+- `superseded`
+- `withdrawn`
+- `expired`
+
+### `EscalationChannel` *(Task 10)*
+
+- `local_emergency_number`
+- `regional_hotline`
+- `crisis_text_line`
+- `trusted_person`
+
 ## 6. Deterministic Rule Keys
 
 | Rule ID | Inputs | Output condition |
@@ -233,6 +365,12 @@ Every event payload may contain only: `eventVersion`, `occurredAt`, `runtimeMode
 | `day_1_return` | none |
 | `day_7_return` | none |
 | `weekly_active_user` | none |
+| `voice_checkin_started` *(Task 10)* | `language`, `sttProviderKey`, `providerMode` |
+| `voice_checkin_completed` *(Task 10)* | `language`, `sttProviderKey`, `providerMode`, `confirmedSegmentCount`, `flaggedSegmentCount` |
+| `voice_checkin_abandoned` *(Task 10)* | `language`, `sttProviderKey`, `providerMode`, `abandonReason` |
+| `advice_run_completed` *(Task 10)* | `providerMode`, `safetyLevel`, `adviceItemCount`, `escalationShown` |
+| `advice_item_accepted` *(Task 10)* | `actionType`, `sourceInsightId` |
+| `escalation_shown` *(Task 10)* | `safetyLevel`, `copyId` |
 
 `sourceScreen`: `home`, `explore`, `insights`, `plan`, `profile`, `brain_training_session`, or `breathing_session`.
 
@@ -282,17 +420,43 @@ No auth token, provider credential, real health record, or AI prompt may be stor
 | `SUPABASE_SERVICE_ROLE_KEY` | No | server only | Yes | Never exposed to browser or logs |
 | `AI_PROVIDER_API_KEY` | No | server only | Yes | Optional P1 wording refinement |
 | `ANALYTICS_PROVIDER_KEY` | No | client/server per provider | Depends | Optional after provider/consent decision |
+| `SLEEPOS_PROVIDER_MODE` *(Task 10)* | No | server/build | No | `mock` \| `live`; demo runs end-to-end without external keys |
+| `SLEEPOS_STT_PROVIDER` *(Task 10)* | No | server/build | No | `mock` \| `google_stt_v2` \| `gemini_live` |
+| `SLEEPOS_ADVICE_PROVIDER` *(Task 10)* | No | server/build | No | `mock` \| `minimax` |
+| `SLEEPOS_TTS_PROVIDER` *(Task 10)* | No | server/build | No | `mock` \| `minimax_tts` |
+| `SLEEPOS_STT_DEFAULT_LANGUAGE` *(Task 10)* | No | server/build | No | `en-US` (default) \| `en-GB` |
+| `SLEEPOS_VOICE_AUDIO_RETENTION` *(Task 10)* | No | server/build | No | `none` (default) \| `enabled_storage` \| `research_grant`; never persist raw audio without explicit consent |
+| `GOOGLE_APPLICATION_CREDENTIALS` *(Task 10)* | When `SLEEPOS_STT_PROVIDER=google_stt_v2` | server only | Yes | Standard Google service-account path |
+| `SLEEPOS_GOOGLE_STT_PROJECT_ID` *(Task 10)* | When `SLEEPOS_STT_PROVIDER=google_stt_v2` | server only | Yes | Google Cloud project for STT billing/quota |
+| `MINIMAX_API_KEY` *(Task 10)* | When `SLEEPOS_ADVICE_PROVIDER=minimax` or `SLEEPOS_TTS_PROVIDER=minimax_tts` | server only | Yes | MiniMax provider secret; never exposed to the browser bundle |
+| `MINIMAX_API_BASE_URL` *(Task 10)* | No | server only | No | Override for staging / regional endpoints |
+| `MINIMAX_TEXT_MODEL` *(Task 10)* | No | server only | No | Provider model name; controlled by env, not domain code |
+| `MINIMAX_TTS_MODEL` *(Task 10)* | No | server only | No | TTS provider model name |
+| `MINIMAX_TTS_VOICE` *(Task 10)* | No | server only | No | Voice identifier; no clone-voice usage without written consent |
+| `SLEEPOS_KNOWLEDGE_BUNDLE_PATH` *(Task 10)* | No | server only | No | Path to the approved knowledge bundle (JSONL) |
+| `SLEEPOS_EVAL_SUITE_PATH` *(Task 10)* | No | server only | No | Path to the safety evaluation suite JSONL |
 
 P0 must start without database, Supabase, AI, or analytics provider variables. Public body-model URLs are not secrets, but asset provenance and controlled hosting remain release requirements.
 
-## 11. Safety Copy Key
+The frontend bundle MUST NOT contain any `NEXT_PUBLIC_MINIMAX_*` or `NEXT_PUBLIC_GOOGLE_*` secret-shaped variable. CI blocks such names.
 
-Canonical footer identifier: `wellnessDisclaimer`.
+## 11. Safety Copy Keys
+
+| Identifier | Where shown | Status |
+|---|---|---|
+| `wellnessDisclaimer` | All footers and adjacent to AI advice text | `approved` |
+| `wellnessScope` *(Task 10)* | Voice check-in landing; Insight header for amber routing | `pending` |
+| `escalationCopy` *(Task 10)* | Red safety routing surface; never in footer | `pending` |
 
 Canonical English text:
 
-> SleepOS provides wellness information and does not replace professional medical advice or diagnosis.
+- `wellnessDisclaimer`:
+  > SleepOS provides wellness information and does not replace professional medical advice or diagnosis.
+- `wellnessScope` *(pending; authoritative source `shared/constants/safety.ts`)*:
+  > SleepOS helps you understand your sleep, train your brain, and choose low-risk wellness actions. It is not a diagnostic tool and does not replace professional care.
+- `escalationCopy` *(pending; placeholder `[REGIONAL_HOTLINE]` must be filled in by Legal / Clinical for each release region)*:
+  > This sounds urgent. Please contact a local emergency service or a trusted person right now. SleepOS does not provide emergency support. If you are in [REGION], you can call [REGIONAL_HOTLINE].
 
-Copy changes require product/safety review; tests should select the identifier rather than duplicate the sentence across features.
+Copy changes require product/safety review; tests select the identifier rather than duplicate the sentence across features. Region-specific escalation numbers must be reviewed by Legal / Clinical before any release that targets that region.
 
-Independent review remains pending.
+Independent review of new copy identifiers (`wellnessScope`, `escalationCopy`) is pending external review.

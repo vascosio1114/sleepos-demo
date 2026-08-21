@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepos.local/schemas/health-checkin.schema.json",
+  "title": "HealthCheckin",
+  "description": "Five self-report fields + confirmed free-text note. Bounds mirror SHARED_KEYS §3 metric ranges.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "checkinId",
+    "userId",
+    "localDate",
+    "schemaVersion",
+    "capturedAt",
+    "source",
+    "sleepQualityScore",
+    "sleepMinutes",
+    "stressScore",
+    "moodScore",
+    "focusScore",
+    "confirmedNote",
+    "sourceSegmentIds"
+  ],
+  "properties": {
+    "checkinId": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "localDate": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "schemaVersion": { "type": "string", "const": "health-checkin-v1" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "enum": ["voice_confirmed", "manual_entry"] },
+    "sleepQualityScore": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+    "sleepMinutes": { "type": ["integer", "null"], "minimum": 0, "maximum": 1440 },
+    "stressScore": { "type": ["integer", "null"], "minimum": 0, "maximum": 10 },
+    "moodScore": { "type": ["integer", "null"], "minimum": 0, "maximum": 10 },
+    "focusScore": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+    "confirmedNote": { "type": ["string", "null"], "maxLength": 600 },
+    "sourceSegmentIds": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" },
+      "maxItems": 64
+    }
+  }
+}

@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRightIcon, CheckIcon, MoonIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CheckIcon, MoonIcon, PlayIcon, PauseIcon, SpeakerSimpleHighIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { buildRecoveryInsight, sevenDayTrends } from "@/lib/insight-rules";
 import { usePlan } from "./plan-provider";
+import { useVoiceAdvice } from "@/lib/voice-advice";
 import styles from "./insights-experience.module.css";
 
 const insight = buildRecoveryInsight();
@@ -59,6 +61,27 @@ export function InsightsExperience() {
   const { state } = usePlan();
   const breathing = state.actions.find((action) => action.id === "breathing");
   const isAdded = Boolean(breathing);
+  const { latestAdvice, refreshLatestAdvice } = useVoiceAdvice();
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    refreshLatestAdvice();
+  }, [refreshLatestAdvice]);
+
+  function playSpeakable() {
+    if (!latestAdvice || typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(latestAdvice.speakableText);
+    utterance.lang = "en-US";
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
+    window.speechSynthesis.speak(utterance);
+    setIsPlaying(true);
+  }
+  function stopSpeakable() {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    setIsPlaying(false);
+  }
 
   return (
     <div className={`page-container ${styles.page}`}>
@@ -97,6 +120,49 @@ export function InsightsExperience() {
         {isAdded ? <span className={styles.planState}><CheckIcon size={17} aria-hidden="true" />In today&apos;s plan</span> : null}
         <Link className="button button-primary" href="/plan?start=breathing">Start breathing <ArrowRightIcon size={18} aria-hidden="true" /></Link>
       </div>
+
+      {latestAdvice ? (
+        <section className={styles.adviceBoard} aria-labelledby="ai-advice-heading">
+          <header>
+            <p className="eyebrow">Latest voice check-in · AI guidance</p>
+            <h2 id="ai-advice-heading">{latestAdvice.summary}</h2>
+            <span className={styles[`safety-${latestAdvice.safetyLevel}`]}>{latestAdvice.safetyLevel}</span>
+          </header>
+          {latestAdvice.escalation ? (
+            <p className={styles[`escalation-${latestAdvice.safetyLevel}`]}>
+              <WarningCircleIcon size={18} aria-hidden="true" /> {latestAdvice.escalation.message}
+            </p>
+          ) : null}
+          {latestAdvice.observations.length > 0 ? (
+            <ul className={styles.observations}>
+              {latestAdvice.observations.map((observation, index) => (
+                <li key={index}>
+                  <strong>{observation.statement}</strong>
+                  <small>{observation.uncertainty}</small>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {latestAdvice.adviceItems.length > 0 ? (
+            <ul className={styles.items}>
+              {latestAdvice.adviceItems.map((item, index) => (
+                <li key={`${item.actionType}-${index}`}>
+                  <strong>{item.title}</strong>
+                  <p>{item.reason}</p>
+                  <small>{item.actionType.replace(/_/g, " ")}{item.routineKey ? ` · ${item.routineKey.replace(/_/g, " ")}` : ""}{item.durationMinutes > 0 ? ` · ${item.durationMinutes} min` : ""}</small>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className={styles.audioRow}>
+            <button className={`button ${isPlaying ? "button-secondary" : "button-primary"}`} onClick={isPlaying ? stopSpeakable : playSpeakable} disabled={!latestAdvice.speakableText}>
+              {isPlaying ? <><PauseIcon size={18} aria-hidden="true" /> Stop</> : <><PlayIcon size={18} aria-hidden="true" /> Play guidance</>}
+            </button>
+            <span className={styles.speakable}><SpeakerSimpleHighIcon size={18} aria-hidden="true" />{latestAdvice.speakableText}</span>
+          </div>
+          <Link className="button button-secondary" href="/check-in">Run a new check-in <ArrowRightIcon size={18} aria-hidden="true" /></Link>
+        </section>
+      ) : null}
     </div>
   );
 }

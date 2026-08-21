@@ -1,0 +1,463 @@
+.page {
+  width: min(1080px, calc(100% - 40px));
+  display: grid;
+  gap: 22px;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 22px;
+  align-items: end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(2rem, 3.6vw, 3.2rem);
+  line-height: 1.02;
+  font-weight: 540;
+  letter-spacing: 0;
+}
+
+.header p:last-child {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font: 600 .72rem var(--font-geist-mono), monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.coachPanel,
+.transcript,
+.answer {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7, 17, 31, .62);
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.modeSwitch {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(2, 11, 24, .52);
+}
+
+.modeSwitch button {
+  display: grid;
+  gap: 2px;
+  min-width: 112px;
+  min-height: 48px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.modeSwitch button[data-active="true"] {
+  border-color: rgba(99, 200, 255, .48);
+  background: rgba(99, 200, 255, .12);
+  color: var(--text);
+}
+
+.modeSwitch span {
+  font-size: .72rem;
+  color: var(--muted);
+}
+
+.resetButton {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: rgba(2, 11, 24, .4);
+  color: var(--muted);
+  font: 650 .78rem var(--font-geist-mono), monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.voiceStage {
+  min-height: 430px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.brainVisual {
+  min-height: 430px;
+  overflow: hidden;
+  border: 1px solid rgba(99, 200, 255, .2);
+  border-radius: 10px;
+  background: #020607;
+}
+
+.brainVisual iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 430px;
+  display: block;
+  border: 0;
+}
+
+.orbDock {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 16px;
+  min-height: 430px;
+  padding: 24px;
+  border: 1px solid rgba(99, 200, 255, .18);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(99, 200, 255, .14), transparent 34%),
+    rgba(2, 11, 24, .48);
+  text-align: center;
+}
+
+.voiceOrb {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #e9f7ff;
+  cursor: pointer;
+}
+
+.voiceOrb:disabled {
+  cursor: wait;
+}
+
+.orbRing,
+.orbRing::before,
+.orbRing::after,
+.orbCore {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.orbRing {
+  inset: 18px;
+  border: 1px solid rgba(99, 200, 255, .48);
+  box-shadow: 0 0 34px rgba(99, 200, 255, .18);
+  animation: breathe 2.6s ease-in-out infinite;
+}
+
+.orbRing::before,
+.orbRing::after {
+  content: "";
+  inset: -18px;
+  border: 1px solid rgba(99, 200, 255, .2);
+  animation: pulseRing 2.6s ease-in-out infinite;
+}
+
+.orbRing::after {
+  inset: -36px;
+  animation-delay: .35s;
+}
+
+.orbCore {
+  inset: 44px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 42% 32%, rgba(255, 255, 255, .7), transparent 18%),
+    linear-gradient(160deg, #70c7ff, #53dfc3 72%);
+  box-shadow: 0 18px 52px rgba(83, 223, 195, .28);
+  color: #00111b;
+}
+
+.voiceOrb[data-stage="recording"] .orbRing {
+  border-color: rgba(103, 211, 145, .75);
+  box-shadow: 0 0 48px rgba(103, 211, 145, .26);
+  animation-duration: 1.05s;
+}
+
+.voiceOrb[data-stage="recording"] .orbRing::before,
+.voiceOrb[data-stage="recording"] .orbRing::after {
+  border-color: rgba(103, 211, 145, .28);
+  animation-duration: 1.05s;
+}
+
+.voiceOrb[data-stage="transcribing"] .orbRing,
+.voiceOrb[data-stage="answering"] .orbRing {
+  animation-duration: 1.4s;
+}
+
+.orbDock h2 {
+  margin: 0;
+  font-size: 1.55rem;
+}
+
+.orbDock p {
+  max-width: 280px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.quickQuestion {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(103, 211, 145, .28);
+  border-radius: 10px;
+  background: rgba(103, 211, 145, .07);
+}
+
+.quickQuestion span {
+  color: var(--good);
+  font: 650 .72rem var(--font-geist-mono), monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.quickQuestion button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.typedFallback {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.typedFallback textarea {
+  width: 100%;
+  min-height: 54px;
+  resize: vertical;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(2, 11, 24, .55);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.45;
+}
+
+.typedFallback textarea::placeholder {
+  color: var(--faint);
+}
+
+.loading,
+.error,
+.voiceNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.loading {
+  padding: 12px 14px;
+  border: 1px dashed rgba(99, 200, 255, .32);
+  border-radius: 8px;
+  color: var(--cyan);
+  background: rgba(99, 200, 255, .06);
+}
+
+.error {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 169, 77, .42);
+  border-radius: 8px;
+  color: var(--attention);
+  background: rgba(245, 169, 77, .08);
+}
+
+.transcript blockquote {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+  line-height: 1.55;
+}
+
+.answer header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: start;
+}
+
+.answer h2 {
+  margin: 7px 0 0;
+  font-size: 1.45rem;
+}
+
+.answer header span {
+  padding: 5px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(103, 211, 145, .42);
+  color: var(--good);
+  font: 650 .68rem var(--font-geist-mono), monospace;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.answer header span[data-safety="amber"] {
+  border-color: rgba(245, 169, 77, .42);
+  color: var(--attention);
+}
+
+.answer header span[data-safety="red"] {
+  border-color: rgba(245, 86, 86, .5);
+  color: #f5a3a3;
+}
+
+.answer > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.recommendation {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(99, 200, 255, .28);
+  border-radius: 10px;
+  background: rgba(99, 200, 255, .06);
+}
+
+.recommendation strong {
+  color: var(--text);
+}
+
+.recommendation span {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.answerActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.voiceNote {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--faint);
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(.96);
+    opacity: .8;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(.88);
+    opacity: .5;
+  }
+  70%, 100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .page {
+    width: min(100% - 24px, 1080px);
+    padding-top: 24px;
+  }
+
+  .header,
+  .voiceStage,
+  .typedFallback,
+  .answer header {
+    grid-template-columns: 1fr;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    line-height: 1.08;
+  }
+
+  .topBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modeSwitch {
+    width: 100%;
+  }
+
+  .modeSwitch button {
+    min-width: 0;
+  }
+
+  .coachPanel,
+  .transcript,
+  .answer {
+    padding: 14px;
+  }
+
+  .brainVisual,
+  .brainVisual iframe,
+  .orbDock {
+    min-height: 320px;
+  }
+
+  .voiceOrb {
+    width: 158px;
+    height: 158px;
+  }
+
+  .orbCore {
+    inset: 38px;
+  }
+
+  .answerActions {
+    display: grid;
+  }
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, ClockIcon } from "@phosphor-icons/react/dist/ssr";
+import { DemoControlPanel } from "@/components/demo-control-panel";
 import { StatusPill } from "@/components/status-pill";
 import { HomeProgress } from "@/components/home-progress";
 import { alexDemo } from "@/lib/demo-data";
@@ -67,6 +68,8 @@ export default function HomePage() {
         <HomeProgress />
       </header>
 
+      <DemoControlPanel />
+
       <section className="health-summary" aria-labelledby="sleep-heading">
         <div className="health-summary-head">
           <div>
@@ -117,6 +120,32 @@ export default function HomePage() {
         <div className="recommendation-actions">
           <Link className="button button-primary" href={recommendation.startHref}>Start session</Link>
           <Link className="button button-secondary" href="/plan">View plan</Link>
+        </div>
+      </section>
+
+      <section className="recommendation" aria-labelledby="voice-checkin-heading" style={{ marginTop: 24 }}>
+        <div className="recommendation-marker"><span>New</span><i aria-hidden="true" /></div>
+        <div className="recommendation-copy">
+          <p className="eyebrow">Voice check-in · Demo mode</p>
+          <h2 id="voice-checkin-heading">Tell SleepOS how today is going.</h2>
+          <span className="duration"><ClockIcon size={16} aria-hidden="true" />~2 min · 18 demo scenarios</span>
+        </div>
+        <div className="recommendation-actions">
+          <Link className="button button-primary" href="/check-in">Start voice check-in</Link>
+          <Link className="button button-secondary" href="/insights">View latest insight</Link>
+        </div>
+      </section>
+
+      <section className="recommendation" aria-labelledby="voice-brain-coach-heading" style={{ marginTop: 24 }}>
+        <div className="recommendation-marker"><span>AI</span><i aria-hidden="true" /></div>
+        <div className="recommendation-copy">
+          <p className="eyebrow">Voice Brain Coach</p>
+          <h2 id="voice-brain-coach-heading">Ask which brain training to do.</h2>
+          <span className="duration"><ClockIcon size={16} aria-hidden="true" />Voice in · AI answer · Voice out</span>
+        </div>
+        <div className="recommendation-actions">
+          <Link className="button button-primary" href="/brain-coach">Start brain coach</Link>
+          <Link className="button button-secondary" href="/plan?start=brain-training">Open training</Link>
         </div>
       </section>
     </div>

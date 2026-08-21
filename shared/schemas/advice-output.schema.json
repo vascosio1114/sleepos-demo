@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sleepos.local/schemas/advice-output.schema.json",
+  "title": "AdviceOutput",
+  "description": "Strict AI advice output. Validation fails closed; any invalid output is replaced with a deterministic safe fallback. The model can only explain scores; it cannot invent them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "summary",
+    "observations",
+    "adviceItems",
+    "brainDomains",
+    "sourceIds",
+    "followUpQuestion",
+    "escalation",
+    "speakableText",
+    "provenance"
+  ],
+  "properties": {
+    "summary": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "observations": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statement", "evidenceMetricKeys", "uncertainty"],
+        "properties": {
+          "statement": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "evidenceMetricKeys": { "type": "array", "items": { "type": "string" }, "maxItems": 8 },
+          "uncertainty": { "type": "string", "minLength": 1, "maxLength": 280 }
+        }
+      }
+    },
+    "adviceItems": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "reason", "actionType", "routineKey", "durationMinutes", "riskLevel"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 240 },
+          "actionType": { "type": "string", "enum": ["brain_training", "breathing", "sleep_goal", "routine"] },
+          "routineKey": {
+            "type": ["string", "null"],
+            "enum": [
+              "consistent_wake_time",
+              "wind_down_30_min_no_screens",
+              "no_caffeine_after_2pm",
+              "morning_daylight_10_min",
+              "regular_meal_times",
+              "hydration_balance",
+              "bedroom_dark_cool_quiet",
+              "short_walk_after_dinner",
+              null
+            ]
+          },
+          "durationMinutes": { "type": "integer", "minimum": 0, "maximum": 60 },
+          "riskLevel": { "type": "string", "enum": ["low"] }
+        }
+      }
+    },
+    "brainDomains": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "score", "source", "measured", "explanation"],
+        "properties": {
+          "key": { "type": "string", "enum": ["attention", "regulation", "memory", "sleep_arousal"] },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "source": { "type": "string", "enum": ["assessment", "wearable", "self_report", "demo"] },
+          "measured": { "type": "boolean" },
+          "explanation": { "type": "string", "minLength": 1, "maxLength": 240 }
+        }
+      }
+    },
+    "sourceIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 80 },
+      "minItems": 0,
+      "maxItems": 32
+    },
+    "followUpQuestion": { "type": ["string", "null"], "maxLength": 200 },
+    "escalation": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["level", "message"],
+      "properties": {
+        "level": { "type": "string", "enum": ["green", "amber", "red"] },
+        "message": { "type": "string", "minLength": 1, "maxLength": 400 }
+      }
+    },
+    "speakableText": { "type": "string", "minLength": 1, "maxLength": 600 },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["promptVersion", "knowledgeVersion", "safetyReasonCodes", "adviceProviderKey"],
+      "properties": {
+        "promptVersion": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "knowledgeVersion": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "safetyReasonCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "crisis_self_harm",
+              "crisis_medical_emergency",
+              "diagnosis_request",
+              "medication_change_request",
+              "sustained_decline_self_report",
+              "conflicting_metric_signals",
+              "minor_low_risk_wellness",
+              "no_signals"
+            ]
+          }
+        },
+        "adviceProviderKey": { "type": "string", "enum": ["mock", "minimax"] }
+      }
+    }
+  }
+}
