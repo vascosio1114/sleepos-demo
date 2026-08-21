@@ -1,151 +1,70 @@
 import Link from "next/link";
-import { ArrowRightIcon, ClockIcon } from "@phosphor-icons/react/dist/ssr";
-import { DemoControlPanel } from "@/components/demo-control-panel";
-import { StatusPill } from "@/components/status-pill";
-import { HomeProgress } from "@/components/home-progress";
-import { alexDemo } from "@/lib/demo-data";
-import { sevenDayTrends } from "@/lib/insight-rules";
+import { ArrowRightIcon, BrainIcon, CompassIcon, ListChecksIcon, MicrophoneIcon } from "@phosphor-icons/react/dist/ssr";
 
-const days = ["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"];
-
-function Sparkline({ values, label }: Readonly<{ values: readonly number[]; label: string }>) {
-  const width = 300;
-  const height = 78;
-  const padding = 6;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const points = values.map((value, index) => {
-    const x = padding + (index / (values.length - 1)) * (width - padding * 2);
-    const normalized = (value - min) / range;
-    const y = padding + (1 - normalized) * (height - padding * 2);
-    return `${x},${y}`;
-  }).join(" ");
-
-  return (
-    <svg className="sparkline" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} preserveAspectRatio="none">
-      <line x1="0" y1={height - 1} x2={width} y2={height - 1} className="sparkline-axis" />
-      <polyline points={points} className="sparkline-line" />
-      {points.split(" ").map((point, index) => {
-        const [cx, cy] = point.split(",");
-        return <circle key={point} cx={cx} cy={cy} r={index === values.length - 1 ? 4 : 2} className={index === values.length - 1 ? "sparkline-point current" : "sparkline-point"} />;
-      })}
-    </svg>
-  );
-}
-
-function SleepWeekChart() {
-  const chartMaximum = 8;
-  const baseline = 7.17;
-
-  return (
-    <div className="sleep-week-chart" role="img" aria-label="Sleep duration over seven days, decreasing from 7 hours 20 minutes to 6 hours 18 minutes. Baseline is 7 hours 10 minutes.">
-      <div className="sleep-baseline" style={{ bottom: `${(baseline / chartMaximum) * 100}%` }}><span>Baseline 7h 10m</span></div>
-      {sevenDayTrends.sleep.map((value, index) => (
-        <div className="sleep-day" key={days[index]}>
-          <div className="sleep-bar-track">
-            <i className="sleep-bar" data-current={index === days.length - 1 || undefined} style={{ height: `${(value / chartMaximum) * 100}%` }} />
-            {index === days.length - 1 ? <strong>6h 18m</strong> : null}
-          </div>
-          <span>{days[index]}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const demoSteps = [
+  {
+    href: "/brain-coach",
+    icon: MicrophoneIcon,
+    eyebrow: "Step 1",
+    title: "Ask by voice",
+    copy: "Speak a sleep, stress, focus, or brain-training question.",
+    cta: "Start voice coach",
+  },
+  {
+    href: "/explore?view=brain",
+    icon: BrainIcon,
+    eyebrow: "Step 2",
+    title: "See the brain score",
+    copy: "The answer highlights the brain area that needs attention.",
+    cta: "View brain",
+  },
+  {
+    href: "/plan?start=brain-training",
+    icon: ListChecksIcon,
+    eyebrow: "Step 3",
+    title: "Start training",
+    copy: "Open the short attention task recommended by SleepOS.",
+    cta: "Start task",
+  },
+] as const;
 
 export default function HomePage() {
-  const { user, status, recommendation, updatedLabel } = alexDemo;
-
   return (
-    <div className="page-container home-page">
-      <header className="home-header">
+    <div className="page-container simple-home">
+      <section className="simple-hero" aria-labelledby="home-title">
+        <p className="eyebrow">SleepOS Demo</p>
+        <h1 id="home-title">Voice in. Brain advice out.</h1>
+        <p>Ask SleepOS what brain training to do, hear the answer, then see the brain/body view.</p>
+        <div className="simple-hero-actions">
+          <Link className="button button-primary" href="/brain-coach">
+            Start demo <ArrowRightIcon size={18} aria-hidden="true" />
+          </Link>
+          <Link className="button button-secondary" href="/explore">
+            Body view <CompassIcon size={18} aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      <section className="simple-flow" aria-label="Demo flow">
+        {demoSteps.map(({ href, icon: StepIcon, eyebrow, title, copy, cta }) => (
+          <Link className="simple-step" href={href} key={href}>
+            <span className="simple-step-icon" aria-hidden="true"><StepIcon size={25} /></span>
+            <span className="eyebrow">{eyebrow}</span>
+            <strong>{title}</strong>
+            <p>{copy}</p>
+            <em>{cta} <ArrowRightIcon size={15} aria-hidden="true" /></em>
+          </Link>
+        ))}
+      </section>
+
+      <section className="simple-proof" aria-label="What this proves">
         <div>
-          <p className="eyebrow">{updatedLabel} · Demo data</p>
-          <h1>Good morning, {user.name}</h1>
-          <p>Your overnight view.</p>
+          <span>What it proves</span>
+          <strong>Voice AI guides safe wellness training.</strong>
         </div>
-        <HomeProgress />
-      </header>
-
-      <DemoControlPanel />
-
-      <section className="health-summary" aria-labelledby="sleep-heading">
-        <div className="health-summary-head">
-          <div>
-            <p className="eyebrow">Sleep</p>
-            <h2 id="sleep-heading">Weekly sleep duration</h2>
-          </div>
-          <span className="chart-range-label">Last 7 days</span>
-        </div>
-
-        <div className="sleep-overview">
-          <div className="sleep-chart-column">
-            <div className="current-sleep"><strong>6h 18m</strong><span>Today · 52 min below baseline</span></div>
-            <SleepWeekChart />
-          </div>
-          <div className="sleep-highlight">
-            <StatusPill status={status.value} label={status.label} />
-            <h3>{status.headline}</h3>
-            <p>Sleep −52 min · HRV −6 ms</p>
-            <Link className="text-link" href="/insights">View pattern <ArrowRightIcon size={17} aria-hidden="true" /></Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="signal-summary" aria-labelledby="signals-heading">
-        <div className="section-heading-row">
-          <div><p className="eyebrow">Overnight signals</p><h2 id="signals-heading">Compared with your baseline</h2></div>
-          <span>Last 7 days</span>
-        </div>
-        <div className="signal-trends">
-          <Link className="signal-trend" href="/explore?system=heart_autonomic">
-            <div className="signal-trend-copy"><span>HRV</span><strong>42 <small>ms</small></strong><p>−6 vs baseline</p></div>
-            <div className="signal-trend-chart"><Sparkline values={sevenDayTrends.hrv} label="HRV decreased from 49 to 42 milliseconds over seven days" /><span>49</span><b>42 today</b><em>View details <ArrowRightIcon size={13} aria-hidden="true" /></em></div>
-          </Link>
-          <Link className="signal-trend" href="/explore?system=brain">
-            <div className="signal-trend-copy"><span>Reaction</span><strong>312 <small>ms</small></strong><p>+21 vs baseline</p></div>
-            <div className="signal-trend-chart"><Sparkline values={sevenDayTrends.reactionTime} label="Reaction time increased from 291 to 312 milliseconds over seven days" /><span>291</span><b>312 today</b><em>View details <ArrowRightIcon size={13} aria-hidden="true" /></em></div>
-          </Link>
-        </div>
-      </section>
-
-      <section className="recommendation" aria-labelledby="recommendation-heading">
-        <div className="recommendation-marker"><span>Next</span><i aria-hidden="true" /></div>
-        <div className="recommendation-copy">
-          <p className="eyebrow">Recommended today</p>
-          <h2 id="recommendation-heading">{recommendation.title}</h2>
-          <span className="duration"><ClockIcon size={16} aria-hidden="true" />{recommendation.duration}</span>
-        </div>
-        <div className="recommendation-actions">
-          <Link className="button button-primary" href={recommendation.startHref}>Start session</Link>
-          <Link className="button button-secondary" href="/plan">View plan</Link>
-        </div>
-      </section>
-
-      <section className="recommendation" aria-labelledby="voice-checkin-heading" style={{ marginTop: 24 }}>
-        <div className="recommendation-marker"><span>New</span><i aria-hidden="true" /></div>
-        <div className="recommendation-copy">
-          <p className="eyebrow">Voice check-in · Demo mode</p>
-          <h2 id="voice-checkin-heading">Tell SleepOS how today is going.</h2>
-          <span className="duration"><ClockIcon size={16} aria-hidden="true" />~2 min · 18 demo scenarios</span>
-        </div>
-        <div className="recommendation-actions">
-          <Link className="button button-primary" href="/check-in">Start voice check-in</Link>
-          <Link className="button button-secondary" href="/insights">View latest insight</Link>
-        </div>
-      </section>
-
-      <section className="recommendation" aria-labelledby="voice-brain-coach-heading" style={{ marginTop: 24 }}>
-        <div className="recommendation-marker"><span>AI</span><i aria-hidden="true" /></div>
-        <div className="recommendation-copy">
-          <p className="eyebrow">Voice Brain Coach</p>
-          <h2 id="voice-brain-coach-heading">Ask which brain training to do.</h2>
-          <span className="duration"><ClockIcon size={16} aria-hidden="true" />Voice in · AI answer · Voice out</span>
-        </div>
-        <div className="recommendation-actions">
-          <Link className="button button-primary" href="/brain-coach">Start brain coach</Link>
-          <Link className="button button-secondary" href="/plan?start=brain-training">Open training</Link>
+        <div>
+          <span>Demo safe</span>
+          <strong>Stable uses mock data. Live can call STT / MiniMax.</strong>
         </div>
       </section>
     </div>
